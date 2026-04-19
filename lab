@@ -34,7 +34,7 @@ case "$cmd" in
     ;;
 
   monitor|repl)
-    exec renode --plain --disable-gui
+    exec renode --plain --disable-gui --console
     ;;
 
   shell)
