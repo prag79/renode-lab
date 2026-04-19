@@ -1,0 +1,4 @@
+:name: STM32F4 Discovery (bundled demo)
+:description: Pre-built Renode example - sanity check that the image works.
+
+include @scripts/single-node/stm32f4_discovery.resc

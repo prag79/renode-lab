@@ -1,0 +1,4 @@
+:name: HiFive Unleashed Linux boot
+:description: Boot a real RISC-V Linux kernel on the modelled FU540 SoC.
+
+include @scripts/complex/hifive_unleashed/hifive_unleashed.resc

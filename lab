@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# /usr/local/bin/lab - dispatcher for the Renode starter exercises.
+# Usage: lab {list|01|02|03|monitor|shell}
+
+set -e
+
+LABS_ROOT="${LABS_ROOT:-/labs}"
+
+cmd="${1:-list}"; shift || true
+
+case "$cmd" in
+  list|"")
+    echo "Available labs:"
+    echo "  01       - bundled STM32F4 demo (sanity check)"
+    echo "  02       - Linux on SiFive HiFive Unleashed (RISC-V)"
+    echo "  03       - custom RV64 SoC + bare-metal hello world"
+    echo "  monitor  - plain Renode interactive monitor"
+    echo
+    echo "Run with: lab 01 | lab 02 | lab 03 | lab monitor"
+    ;;
+
+  01|01-bundled-stm32f4)
+    exec renode --plain --disable-gui --console "$LABS_ROOT/01-bundled-stm32f4/stm32f4.resc"
+    ;;
+
+  02|02-linux-on-hifive)
+    exec renode --plain --disable-gui --console "$LABS_ROOT/02-linux-on-hifive/linux-hifive.resc"
+    ;;
+
+  03|03-custom-soc)
+    cd "$LABS_ROOT/03-custom-soc"
+    make
+    exec renode --plain --disable-gui --console renode/mini-rv.resc
+    ;;
+
+  monitor|repl)
+    exec renode --plain --disable-gui
+    ;;
+
+  shell)
+    exec bash
+    ;;
+
+  -h|--help|help)
+    echo "usage: lab {list|01|02|03|monitor|shell}"
+    ;;
+
+  *)
+    echo "lab: unknown command '$cmd'" >&2
+    echo "usage: lab {list|01|02|03|monitor|shell}" >&2
+    exit 1
+    ;;
+esac

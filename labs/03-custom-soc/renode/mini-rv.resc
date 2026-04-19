@@ -1,0 +1,6 @@
+:name: mini-rv
+mach create "mini-rv"
+machine LoadPlatformDescription @/labs/03-custom-soc/renode/mini-rv.repl
+sysbus LoadELF @/labs/03-custom-soc/hello.elf
+showAnalyzer uart
+start

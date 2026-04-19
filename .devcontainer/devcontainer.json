@@ -1,0 +1,33 @@
+{
+  "name": "Renode Lab",
+  "image": "ghcr.io/prag79/renode-lab:latest",
+
+  "remoteUser": "student",
+
+  "containerEnv": {
+    "LAB_GUI": "1",
+    "DISPLAY": ":1"
+  },
+
+  "forwardPorts": [6080, 1234],
+  "portsAttributes": {
+    "6080": {
+      "label": "Renode noVNC desktop",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    },
+    "1234": {
+      "label": "Renode telnet monitor",
+      "onAutoForward": "silent",
+      "visibility": "private"
+    }
+  },
+
+  "postAttachCommand": "echo 'Renode lab ready. Try: lab list   |   lab 01   |   lab 02   |   lab 03   |   monitor'",
+
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "4gb",
+    "storage": "16gb"
+  }
+}
