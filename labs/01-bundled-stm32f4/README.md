@@ -56,25 +56,37 @@ the building blocks you'll use in labs 02 and 03.
 
 ## 3. First demo: watch the firmware run
 
-At the `(STM32F4_Discovery)` prompt, try these in order. Each line is a
-**Renode monitor command** — Renode is paused-on-prompt only when
-you ask it to be, so the firmware is already executing.
+> **Always type `start` first.** The bundled `stm32f4_discovery.resc`
+> loads the ELF and stops — it never calls `start` itself. Until
+> you do, the Cortex-M4 is held at reset and `sysbus.cpu PC`
+> returns `0x00000000`. That's not a broken simulation; the CPU
+> simply hasn't fetched its reset vector yet.
+
+At the `(STM32F4_Discovery)` prompt, type these in order. Each
+line is a **Renode monitor command**.
 
 ```text
+start
 peripherals
 ```
 
-Lists every peripheral in the platform tree (USARTs, GPIO ports,
-RCC, NVIC, the Cortex-M4 itself, …). Confirms what the `.repl`
-actually built.
+`start` releases the CPU from reset; the Cortex-M boot sequence
+runs (`SP = mem[0x00000000]`, `PC = mem[0x00000004]`) and
+execution jumps into Contiki in flash.
+
+`peripherals` lists every peripheral in the platform tree
+(USARTs, GPIO ports, RCC, NVIC, the Cortex-M4 itself, …) — it
+confirms what the `.repl` actually built.
 
 ```text
 sysbus.cpu PC
+sysbus.cpu PC
 ```
 
-Prints the current program counter. Run it twice — the value
-changes, proving the CPU is really executing instructions, not
-frozen.
+After `start`, PC is somewhere in flash (typically `0x0800xxxx`).
+Run the command twice — the value **changes**, proving the CPU
+is really executing instructions, not frozen. If it still shows
+`0x00000000`, you skipped `start`; type it now.
 
 ```text
 pause
