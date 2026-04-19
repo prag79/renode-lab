@@ -11,15 +11,21 @@ to anything custom.
 lab 01
 ```
 
-This runs:
+This runs (after mirroring `/labs/01-bundled-stm32f4/` into your
+editable scratch tree at `~/work/01-bundled-stm32f4/` on first
+invocation):
 
 ```
-renode --plain --disable-gui --console /labs/01-bundled-stm32f4/stm32f4.resc
+cd ~/work/01-bundled-stm32f4
+renode --plain --disable-gui --console stm32f4.resc
 ```
 
-which simply `include`s the bundled
+`stm32f4.resc` simply `include`s the bundled
 `scripts/single-node/stm32f4_discovery.resc` shipped inside
-`/opt/renode/`. The bundled firmware is a pre-built **Contiki**
+`/opt/renode/`. Edit `stm32f4.resc` (or anything else under
+`~/work/01-bundled-stm32f4/`) and re-run `lab 01` — your changes
+are preserved (the dispatcher uses `cp -ru`, which never
+clobbers existing files). The bundled firmware is a pre-built **Contiki**
 image (a tiny IoT OS) — *not* FreeRTOS — fetched once from
 Antmicro's release server and cached on disk. After a couple of
 seconds you will see:

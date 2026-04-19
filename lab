@@ -1,10 +1,35 @@
 #!/usr/bin/env bash
 # /usr/local/bin/lab - dispatcher for the Renode starter exercises.
 # Usage: lab {list|01|02|03|monitor|shell}
+#
+# On first run of `lab NN`, the canonical (root-owned, image-baked)
+# lab dir under $LABS_ROOT is mirrored into $WORK_ROOT/<lab-name>/
+# so the student can edit the `.resc`/`.repl`/source files without
+# touching the read-only image. `cp -ru` is idempotent: re-running
+# `lab NN` won't clobber edits, but will pull in any new files
+# added upstream.
+#
+# After the mirror, the script `cd`s into the work copy and runs
+# Renode from there, so relative `@` paths in the `.resc` resolve
+# against the student's editable copy.
 
 set -e
 
 LABS_ROOT="${LABS_ROOT:-/labs}"
+WORK_ROOT="${WORK_ROOT:-$HOME/work}"
+
+prepare_workdir() {
+  local lab="$1"
+  local src="$LABS_ROOT/$lab"
+  local dst="$WORK_ROOT/$lab"
+  if [ ! -d "$src" ]; then
+    echo "lab: no such lab '$lab' under $LABS_ROOT" >&2
+    exit 1
+  fi
+  mkdir -p "$dst"
+  cp -ru "$src/." "$dst/"
+  cd "$dst"
+}
 
 cmd="${1:-list}"; shift || true
 
@@ -17,18 +42,21 @@ case "$cmd" in
     echo "  monitor  - plain Renode interactive monitor"
     echo
     echo "Run with: lab 01 | lab 02 | lab 03 | lab monitor"
+    echo "Working copies live under: $WORK_ROOT/<lab-name>/"
     ;;
 
   01|01-bundled-stm32f4)
-    exec renode --plain --disable-gui --console "$LABS_ROOT/01-bundled-stm32f4/stm32f4.resc"
+    prepare_workdir 01-bundled-stm32f4
+    exec renode --plain --disable-gui --console stm32f4.resc
     ;;
 
   02|02-linux-on-hifive)
-    exec renode --plain --disable-gui --console "$LABS_ROOT/02-linux-on-hifive/linux-hifive.resc"
+    prepare_workdir 02-linux-on-hifive
+    exec renode --plain --disable-gui --console linux-hifive.resc
     ;;
 
   03|03-custom-soc)
-    cd "$LABS_ROOT/03-custom-soc"
+    prepare_workdir 03-custom-soc
     make
     exec renode --plain --disable-gui --console renode/mini-rv.resc
     ;;
@@ -43,6 +71,10 @@ case "$cmd" in
 
   -h|--help|help)
     echo "usage: lab {list|01|02|03|monitor|shell}"
+    echo
+    echo "On first invocation, lab NN copies /labs/<NN-...>/ into"
+    echo "$WORK_ROOT/<NN-...>/ so you can edit it. Re-run 'lab NN'"
+    echo "from anywhere -- the existing working copy is reused."
     ;;
 
   *)

@@ -11,7 +11,7 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Three exercises preloaded under `/labs/` and visible in the file tree under `labs/`.
+- Three exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
@@ -22,6 +22,34 @@ lab 02                  # boot Linux on SiFive HiFive Unleashed (RISC-V)
 lab 03                  # custom RV64 SoC + bare-metal hello world
 monitor                 # plain Renode interactive monitor
 ```
+
+### Where your editable copy of each lab lives
+
+The `lab NN` dispatcher follows a copy-on-first-use pattern:
+
+| Path | What it is | Mutable? |
+|---|---|---|
+| `/labs/<lab-name>/` | Canonical content baked into the image | no — wiped on rebuild |
+| `~/work/<lab-name>/` | Mirror created on first `lab NN` invocation | **yes — edit here** |
+| `/workspaces/renode-lab/` | The cloned git repo | yes; `git push` to keep changes past Codespace deletion |
+
+So the workflow is:
+
+```bash
+lab 01                  # mirrors /labs/01-bundled-stm32f4 -> ~/work/01-bundled-stm32f4 and runs it
+# ...later, after Codespace restart...
+cd ~/work/01-bundled-stm32f4
+nano stm32f4.resc       # tweak it
+lab 01                  # cp -ru is idempotent: your edits are preserved
+```
+
+Or just run from anywhere once the working copy exists:
+
+```bash
+cd ~/work/03-custom-soc && renode --console renode/mini-rv.resc
+```
+
+Edits to `~/work/...` persist across Codespace stop/start. To make changes survive Codespace **deletion**, copy them back into `/workspaces/renode-lab/labs/...` and `git push`.
 
 ## Exercises
 

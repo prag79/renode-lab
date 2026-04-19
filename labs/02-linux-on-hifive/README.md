@@ -11,15 +11,21 @@ total) into its on-disk cache; subsequent runs start in seconds.
 lab 02
 ```
 
-This runs:
+This runs (after mirroring `/labs/02-linux-on-hifive/` into your
+editable scratch tree at `~/work/02-linux-on-hifive/` on first
+invocation):
 
 ```
-renode --plain --disable-gui --console /labs/02-linux-on-hifive/linux-hifive.resc
+cd ~/work/02-linux-on-hifive
+renode --plain --disable-gui --console linux-hifive.resc
 ```
 
-which simply `include`s the bundled
+`linux-hifive.resc` simply `include`s the bundled
 `scripts/complex/hifive_unleashed/hifive_unleashed.resc` shipped
-inside `/opt/renode/`. After ~30 s of cache fetching (first run
+inside `/opt/renode/`. Edit `linux-hifive.resc` (e.g. swap in a
+different upstream `.resc`, add `mach create` overrides, change
+the kernel command line) and re-run `lab 02` — your edits are
+preserved. After ~30 s of cache fetching (first run
 only), boot proceeds in this order:
 
 1. `OpenSBI v0.9` banner.

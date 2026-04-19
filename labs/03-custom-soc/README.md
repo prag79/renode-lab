@@ -17,15 +17,29 @@ startup script.
 lab 03
 ```
 
-This does two things in order:
+This does three things in order:
 
-1. `make` in `labs/03-custom-soc/` — cross-compiles
+1. Mirror `/labs/03-custom-soc/` (read-only image content) into
+   `~/work/03-custom-soc/` (your editable scratch tree). On
+   subsequent `lab 03` runs, `cp -ru` reuses the existing copy
+   and never clobbers your edits.
+2. `make` in `~/work/03-custom-soc/` — cross-compiles
    `src/start.S` + `src/hello.c` with `riscv64-unknown-elf-gcc`
    into `hello.elf` and `hello.bin`.
-2. `renode --plain --disable-gui --console renode/mini-rv.resc`
+3. `renode --plain --disable-gui --console renode/mini-rv.resc`
    — launches the `mini-rv` platform, loads `hello.elf` at the
    RAM base (`0x80000000`), opens a UART analyzer, and starts
    the CPU.
+
+So your editable copy of every file in this lab lives at
+`~/work/03-custom-soc/`. After the first `lab 03`, you can also
+run it directly:
+
+```bash
+cd ~/work/03-custom-soc
+make
+renode --console renode/mini-rv.resc
+```
 
 Within a second you should see in the **`uart` analyzer** window
 (noVNC tab on port 6080, path `/vnc.html`):
@@ -45,11 +59,16 @@ The `.resc` script is short enough to read in one screen — open
 
 ```
 mach create "mini-rv"
-machine LoadPlatformDescription @/labs/03-custom-soc/renode/mini-rv.repl
-sysbus LoadELF @/labs/03-custom-soc/hello.elf
+machine LoadPlatformDescription @renode/mini-rv.repl
+sysbus LoadELF @hello.elf
 showAnalyzer uart
 start
 ```
+
+The `@` paths are *relative*, so they resolve against whatever
+directory Renode is launched from. The `lab 03` dispatcher
+`cd`s into `~/work/03-custom-soc/` first, so `@hello.elf` finds
+the freshly built ELF in the work tree.
 
 Same three primitives as lab 01 and lab 02:
 
@@ -98,7 +117,7 @@ simulation; the prompt comes back. Then:
 pause
 sysbus.uart CreateFileBackend @/tmp/mini-rv.log true
 machine Reset
-sysbus LoadELF @/labs/03-custom-soc/hello.elf
+sysbus LoadELF @hello.elf
 start
 ```
 
@@ -119,7 +138,7 @@ pause
 emulation CreateServerSocketTerminal 3458 "mini-rv-tty"
 connector Connect sysbus.uart mini-rv-tty
 machine Reset
-sysbus LoadELF @/labs/03-custom-soc/hello.elf
+sysbus LoadELF @hello.elf
 start
 ```
 
@@ -150,8 +169,8 @@ makes `Step` and raw memory pokes especially fun here.
 
 ## 6. Mini-experiments (try at least one)
 
-1. **Edit-build-run loop.** In VS Code, open `src/hello.c` and
-   change the message:
+1. **Edit-build-run loop.** In VS Code, open
+   `~/work/03-custom-soc/src/hello.c` and change the message:
 
    ```c
    uart_puts("\n*** My very own RISC-V SoC ***\n");
@@ -159,6 +178,14 @@ makes `Step` and raw memory pokes especially fun here.
 
    Save, then re-run `lab 03`. The Makefile rebuilds only the
    changed file; you should see the new banner within a second.
+
+   > Edit the **work-tree** copy at
+   > `~/work/03-custom-soc/src/hello.c`, not the image copy at
+   > `/labs/03-custom-soc/src/hello.c`. The image copy is
+   > read-only and gets reset on container rebuild; the work-tree
+   > copy persists across Codespace stop/start. To make changes
+   > survive Codespace **deletion**, copy them back into
+   > `/workspaces/renode-lab/labs/03-custom-soc/` and `git push`.
 
 2. **Talk to the UART from the monitor.** Pause, then write
    bytes by hand:
