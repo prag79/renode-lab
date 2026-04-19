@@ -6,6 +6,8 @@ Run Renode in your browser, no install required.
 
 The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the same Codespace afterwards is instant.
 
+> **Students:** start with [`HANDOUT.md`](HANDOUT.md) — a one-document walkthrough of how to launch the Codespace from a personal GitHub account, what Linux/SoC background you should already have, and a one-page cheat sheet of the most useful Renode monitor commands.
+
 ## What you get
 
 - Renode pre-installed at `/usr/local/bin/renode`.
