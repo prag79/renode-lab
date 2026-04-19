@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc-riscv64-linux-gnu    binutils-riscv64-linux-gnu \
         device-tree-compiler make gdb-multiarch \
         wget curl ca-certificates sudo nano less file unzip xz-utils git telnet \
-        xvfb x11vnc fluxbox novnc websockify \
+        xvfb x11vnc fluxbox novnc websockify xterm \
  && rm -rf /var/lib/apt/lists/*
 
 # Renode (portable tarball; works on amd64 and arm64).
@@ -37,6 +37,12 @@ RUN ARCH="$(dpkg --print-architecture)" && \
 RUN useradd -m -s /bin/bash -G sudo student && \
     echo "student ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/student && \
     mkdir -p /home/student/work && chown -R student:student /home/student
+
+# X11 needs /tmp/.X11-unix to exist with sticky bit BEFORE Xvfb starts.
+# Slim Ubuntu images and Codespaces both fail to provide this otherwise:
+# Xvfb (running as non-root `student`) cannot create it itself, dies silently,
+# and port 6080 (noVNC) ends up unbound -> "HTTP ERROR 502" in the browser.
+RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
 
 # Lab content + helpers (extracted from heredocs into the repo root,
 # so they're easy to edit and review without touching the Dockerfile).

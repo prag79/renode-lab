@@ -17,6 +17,13 @@ start_if_missing() {
 }
 
 if [[ "${LAB_GUI:-0}" == "1" ]]; then
+  # Xvfb needs /tmp/.X11-unix with sticky bit; create it if the
+  # base image or a tmpfs reset removed it. Use sudo because student
+  # cannot chmod a root-owned dir.
+  if [[ ! -d /tmp/.X11-unix ]]; then
+    sudo mkdir -p /tmp/.X11-unix && sudo chmod 1777 /tmp/.X11-unix
+  fi
+
   start_if_missing "Xvfb :1"        Xvfb :1 -screen 0 1280x800x24
   sleep 0.5
   start_if_missing "fluxbox"        fluxbox
