@@ -9,6 +9,8 @@
     "DISPLAY": ":1"
   },
 
+  "postStartCommand": "/usr/local/bin/entrypoint.sh true",
+
   "forwardPorts": [6080, 1234],
   "portsAttributes": {
     "6080": {
