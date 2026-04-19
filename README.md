@@ -55,10 +55,10 @@ Two pieces of background that apply to **all three** labs:
 Full walkthrough: [`labs/01-bundled-stm32f4/README.md`](labs/01-bundled-stm32f4/README.md).
 
 ```bash
-lab 01            # boots the bundled STM32F4 Discovery demo (FreeRTOS + UART)
+lab 01            # boots the bundled STM32F4 Discovery demo (Contiki + UART)
 ```
 
-Once `(machine-0)` appears, in the **Renode monitor**:
+Once `(STM32F4_Discovery)` appears, in the **Renode monitor**:
 
 ```text
 peripherals                              # see every modelled peripheral
@@ -67,11 +67,16 @@ pause
 sysbus.cpu Step
 sysbus.cpu PC                            # advanced by one instruction
 start
-sysbus.usart2 CreateFileBackend @/tmp/uart2.log true
+sysbus.uart4 CreateFileBackend @/tmp/uart4.log true
 ```
 
-Then in another Codespace terminal: `tail -f /tmp/uart2.log`
-streams the firmware's `Hello world!` UART output.
+Then in another Codespace terminal: `tail -f /tmp/uart4.log`
+streams the Contiki boot banner and console output.
+
+> The Contiki console is on **`uart4`**, not `usart2`. Attaching
+> a backend to `usart2` will produce an empty file — that
+> peripheral exists in the platform but the demo firmware
+> doesn't use it.
 
 Mini-experiment: toggle an on-board LED directly from the
 monitor (no firmware change), via the GPIOD BSRR register:

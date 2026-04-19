@@ -19,17 +19,23 @@ renode --plain --disable-gui --console /labs/01-bundled-stm32f4/stm32f4.resc
 
 which simply `include`s the bundled
 `scripts/single-node/stm32f4_discovery.resc` shipped inside
-`/opt/renode/`. After a couple of seconds you will see:
+`/opt/renode/`. The bundled firmware is a pre-built **Contiki**
+image (a tiny IoT OS) — *not* FreeRTOS — fetched once from
+Antmicro's release server and cached on disk. After a couple of
+seconds you will see:
 
-- A `(machine-0)` prompt — the **Renode monitor** is now waiting
-  for your commands.
-- UART output of the demo firmware (the bundled binary prints
-  `Hello world!` from a FreeRTOS task on **USART2** roughly once
-  per second).
-- An analyzer window for `sysbus.usart2` opens in the noVNC
-  desktop (port **6080**, path `/vnc.html`). If the port is not
-  forwarded, the analyzer is not visible — that's fine, the next
-  section shows how to read UART from the monitor itself.
+- A `(STM32F4_Discovery)` prompt — the **Renode monitor** is now
+  waiting for your commands.
+- An analyzer window for `sysbus.uart4` opens in the noVNC
+  desktop (port **6080**, path `/vnc.html`). The Contiki console
+  is wired to **`uart4`** — *not* `usart2`. (`usart2` exists in
+  the platform but the demo firmware does not use it, so it
+  stays silent. If you attach a backend to `usart2` you'll see
+  nothing — section 4 covers the right command.)
+- The script does not call `start`, so the CPU may be paused at
+  the first prompt. If `sysbus.cpu PC` returns the same value
+  twice in a row, type `start`. (`lab 01` on the current image
+  may auto-start; either way, `start` is idempotent.)
 
 If `lab 01` fails, nothing else in this lab will work either. Stop
 and fix the environment first (see the troubleshooting table in
@@ -83,11 +89,17 @@ advanced, then resume. This is the bare minimum debug loop.
 
 ## 4. See the UART traffic from the monitor
 
+> **Important:** the Contiki console on this board is on
+> **`uart4`**, not `usart2`. Attaching a backend to `usart2`
+> will produce an empty file and no telnet output — that
+> peripheral exists in the platform but the demo firmware never
+> writes to it.
+
 Even without the GUI analyzer you can capture UART output:
 
 ```text
 pause
-sysbus.usart2 CreateFileBackend @/tmp/uart2.log true
+sysbus.uart4 CreateFileBackend @/tmp/uart4.log true
 start
 ```
 
@@ -95,11 +107,13 @@ Wait a few seconds, then in **another terminal** in the
 Codespace:
 
 ```bash
-tail -f /tmp/uart2.log
+tail -f /tmp/uart4.log
 ```
 
-You should see `Hello world!` lines streaming in. Stop with
-`Ctrl-C` in the tail window; the simulation keeps running.
+You should see Contiki's boot banner (something like
+`Starting Contiki-NG-...`, MAC/IP address, then periodic
+process output) streaming in. Stop with `Ctrl-C` in the tail
+window; the simulation keeps running.
 
 Alternatively, redirect UART to a TCP socket and `telnet` into
 it:
@@ -107,13 +121,18 @@ it:
 ```text
 pause
 emulation CreateServerSocketTerminal 3456 "uart-term"
-connector Connect sysbus.usart2 uart-term
+connector Connect sysbus.uart4 uart-term
 start
 ```
 
 ```bash
 telnet localhost 3456    # in another Codespace terminal
 ```
+
+If you already attached the GUI analyzer to `uart4` (the bundled
+script does, via `showAnalyzer sysbus.uart4`) you may see a
+warning about a second backend — that's harmless for read-only
+inspection.
 
 ## 5. Useful monitor commands to try
 
@@ -136,26 +155,30 @@ for usage.
 | `sysbus ReadDoubleWord 0x40023800` | Peek at the RCC base register. Confirms memory-mapped I/O works. |
 | `sysbus WriteDoubleWord 0x40020C14 0x00008000` | Toggle GPIOD bit 15 (blue LED) directly from the monitor. |
 | `sysbus.gpioPortD` | Inspect the GPIO port object; tab-complete to see its methods. |
-| `logLevel 0 sysbus.usart2` | Verbose-log every read/write to USART2. Set back with `logLevel 3 sysbus.usart2`. |
-| `showAnalyzer sysbus.usart2` | Pop the UART analyzer window (only visible in the noVNC tab). |
+| `logLevel 0 sysbus.uart4` | Verbose-log every read/write to the Contiki console UART. Set back with `logLevel 3 sysbus.uart4`. |
+| `showAnalyzer sysbus.uart4` | Pop the UART analyzer window (only visible in the noVNC tab). |
 | `emulation RunFor "0.5"` | Run for exactly 500 ms of virtual time, then auto-pause. Cycle-accurate determinism. |
 | `machine StatisticalProfiler` | Start a sampling profiler; dump with `WriteToFile`. |
 | `quit` | Exit Renode. |
 
 ## 6. Mini-experiments (try at least one)
 
-1. **Blink an LED from the monitor.** Pause the CPU, then write
-   to the GPIOD BSRR register to toggle PD12–PD15 (the four
-   on-board LEDs):
+1. **Blink an LED from the monitor.** The board model wires
+   `UserLED` to `gpioPortD` pin 12 (PD12 — the green LED on a
+   real STM32F4 Discovery). Pause the CPU and toggle it via the
+   GPIOD BSRR register:
 
    ```text
    pause
-   sysbus WriteDoubleWord 0x40020C18 0x00001000   # set PD12
-   sysbus WriteDoubleWord 0x40020C18 0x10000000   # reset PD12
+   sysbus WriteDoubleWord 0x40020C18 0x00001000   # set PD12   (LED on)
+   sysbus WriteDoubleWord 0x40020C18 0x10000000   # reset PD12 (LED off)
    ```
 
-   The `gpioPortD` analyzer (if visible in the GUI) will flash
-   the corresponding LED.
+   You can also poke the LED object directly:
+
+   ```text
+   sysbus.gpioPortD.UserLED State
+   ```
 
 2. **Time-travel.** Pause, then advance simulated time in
    precise chunks:
@@ -179,10 +202,10 @@ for usage.
    sysbus.cpu LogFunctionNames true
    ```
 
-   The console fills with names like `vTaskDelay`,
-   `prvIdleTask`, `xQueueGenericSend` — you're watching FreeRTOS
-   schedule itself in real time. Turn off with
-   `sysbus.cpu LogFunctionNames false`.
+   The console fills with Contiki function names — `process_run`,
+   `etimer_process`, `clock_time`, networking-stack helpers —
+   you're watching the Contiki scheduler in real time. Very
+   chatty; turn off with `sysbus.cpu LogFunctionNames false`.
 
 4. **Reset and replay.** From the monitor:
 
@@ -191,8 +214,8 @@ for usage.
    start
    ```
 
-   The firmware re-runs from the ELF entry point; UART output
-   restarts from `Hello world!` #1.
+   The firmware re-runs from the ELF entry point; the Contiki
+   boot banner reappears in your `uart4` log / telnet session.
 
 ## 7. Exit cleanly
 
