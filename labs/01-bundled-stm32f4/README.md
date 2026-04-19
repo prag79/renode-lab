@@ -56,7 +56,7 @@ the building blocks you'll use in labs 02 and 03.
 
 ## 3. First demo: watch the firmware run
 
-At the `(machine-0)` prompt, try these in order. Each line is a
+At the `(STM32F4_Discovery)` prompt, try these in order. Each line is a
 **Renode monitor command** — Renode is paused-on-prompt only when
 you ask it to be, so the firmware is already executing.
 

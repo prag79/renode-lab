@@ -74,7 +74,7 @@ would have taken. That's the point of cycle-accurate simulation.
 
 ## 4. Read UART from the monitor (no GUI needed)
 
-Switch focus to the **Renode monitor** (the `(machine-0)` prompt
+Switch focus to the **Renode monitor** (the `(hifive-unleashed)` prompt
 in your terminal — *above* the BusyBox area). All commands in
 this section are monitor commands.
 
