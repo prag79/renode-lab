@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gcc-riscv64-linux-gnu    binutils-riscv64-linux-gnu \
         device-tree-compiler make gdb-multiarch \
         wget curl ca-certificates sudo nano less file unzip xz-utils git telnet \
-        xvfb x11vnc fluxbox novnc websockify xterm \
+        xvfb x11vnc fluxbox novnc websockify xterm x11-utils \
  && rm -rf /var/lib/apt/lists/*
 
 # Renode (portable tarball; works on amd64 and arm64).

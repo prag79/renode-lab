@@ -9,11 +9,35 @@
 
 set -e
 
+LOG_DIR="${LAB_GUI_LOG_DIR:-/tmp}"
+
+# Background a service if it isn't already running. Use `nohup` +
+# `setsid` so the child survives even when the postStartCommand
+# shell exits (Codespaces sometimes reaps non-detached children
+# of postStartCommand). Logs go to $LOG_DIR for debugging instead
+# of /dev/null, since we hit "everything died silently" twice.
 start_if_missing() {
   local name="$1"; shift
+  local log="$LOG_DIR/${name// /_}.log"
   if ! pgrep -f "$name" >/dev/null; then
-    "$@" >/dev/null 2>&1 &
+    nohup setsid "$@" >"$log" 2>&1 < /dev/null &
+    disown || true
   fi
+}
+
+# Block until X display :1 is actually accepting connections.
+# A fixed `sleep 0.5` is not enough on Codespaces -- fluxbox /
+# x11vnc race Xvfb, fail to connect, and exit immediately.
+wait_for_display() {
+  local socket="/tmp/.X11-unix/X${1#:}"
+  for _ in $(seq 1 100); do
+    if [[ -S "$socket" ]] && DISPLAY="$1" xdpyinfo >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.1
+  done
+  echo "entrypoint: timed out waiting for X display $1" >&2
+  return 1
 }
 
 if [[ "${LAB_GUI:-0}" == "1" ]]; then
@@ -24,12 +48,13 @@ if [[ "${LAB_GUI:-0}" == "1" ]]; then
     sudo mkdir -p /tmp/.X11-unix && sudo chmod 1777 /tmp/.X11-unix
   fi
 
-  start_if_missing "Xvfb :1"        Xvfb :1 -screen 0 1280x800x24
-  sleep 0.5
-  start_if_missing "fluxbox"        fluxbox
+  start_if_missing "Xvfb :1"             Xvfb :1 -screen 0 1280x800x24
+  wait_for_display ":1" || true
+  start_if_missing "fluxbox"             fluxbox
   start_if_missing "x11vnc -display :1"  x11vnc -display :1 -forever -shared -rfbport 5901 -nopw -quiet
-  start_if_missing "websockify"     websockify --web=/usr/share/novnc 6080 localhost:5901
+  start_if_missing "websockify"          websockify --web=/usr/share/novnc 6080 localhost:5901
   echo "Desktop ready: open the auto-forwarded port 6080 (path /vnc.html)"
+  echo "Service logs: $LOG_DIR/{Xvfb_:1,fluxbox,x11vnc_-display_:1,websockify}.log"
 fi
 
 # When invoked as the Docker ENTRYPOINT, exec the container CMD.
