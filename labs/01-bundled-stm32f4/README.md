@@ -165,7 +165,9 @@ for usage.
 | `sysbus.cpu Step 100` | Step 100 instructions. |
 | `sysbus.cpu LogFunctionNames true` | Log every C function entry to the console (needs symbols from the ELF — the bundled demo has them). |
 | `sysbus ReadDoubleWord 0x40023800` | Peek at the RCC base register. Confirms memory-mapped I/O works. |
-| `sysbus WriteDoubleWord 0x40020C14 0x00008000` | Toggle GPIOD bit 15 (blue LED) directly from the monitor. |
+| `sysbus WriteDoubleWord 0x40020C18 0x00001000` | Set GPIOD pin 12 (turn the user LED on) via the BSRR register. |
+| `sysbus WriteDoubleWord 0x40020C18 0x10000000` | Reset GPIOD pin 12 (turn the user LED off) via BSRR. |
+| `sysbus.gpioPortD.UserLED State` | Read the current LED state (`True`/`False`). |
 | `sysbus.gpioPortD` | Inspect the GPIO port object; tab-complete to see its methods. |
 | `logLevel 0 sysbus.uart4` | Verbose-log every read/write to the Contiki console UART. Set back with `logLevel 3 sysbus.uart4`. |
 | `showAnalyzer sysbus.uart4` | Pop the UART analyzer window (only visible in the noVNC tab). |
@@ -177,20 +179,97 @@ for usage.
 
 1. **Blink an LED from the monitor.** The board model wires
    `UserLED` to `gpioPortD` pin 12 (PD12 — the green LED on a
-   real STM32F4 Discovery). Pause the CPU and toggle it via the
-   GPIOD BSRR register:
+   real STM32F4 Discovery). The Contiki demo never blinks it on
+   its own, so we'll drive it from the simulator.
+
+   First quiet the UART log spam so the prompt stays usable, and
+   pause the CPU so our writes aren't immediately overwritten by
+   the firmware:
 
    ```text
+   logLevel 3 sysbus.uart4
    pause
-   sysbus WriteDoubleWord 0x40020C18 0x00001000   # set PD12   (LED on)
-   sysbus WriteDoubleWord 0x40020C18 0x10000000   # reset PD12 (LED off)
    ```
 
-   You can also poke the LED object directly:
+   GPIOD lives at `0x40020C00` on the STM32F4. The relevant
+   registers are:
+
+   | Offset | Reg | Purpose |
+   |---|---|---|
+   | `0x14` | `ODR`  | Output data — bit *n* = pin *n* current level |
+   | `0x18` | `BSRR` | Atomic set/reset — low 16 bits *set* pins, high 16 bits *reset* pins |
+
+   So the absolute address of GPIOD's BSRR is `0x40020C18`.
+
+   ### a) One-shot toggle + read-back (works without noVNC)
+
+   The cleanest proof the LED responded:
 
    ```text
-   sysbus.gpioPortD.UserLED State
+   sysbus.gpioPortD.UserLED State          ; before  -> False
+   sysbus WriteDoubleWord 0x40020C18 0x00001000   ; set PD12 (LED on)
+   sysbus.gpioPortD.UserLED State          ; after   -> True
+   sysbus WriteDoubleWord 0x40020C18 0x10000000   ; reset PD12 (LED off)
+   sysbus.gpioPortD.UserLED State          ; after   -> False
    ```
+
+   `True` / `False` flipping in the monitor *is* the LED
+   blinking, just as observed by the model. Same physical event,
+   no GUI required.
+
+   ### b) Live blink loop you can watch (works without noVNC)
+
+   Toggle 10 times with a 200 ms simulated delay between each
+   transition:
+
+   ```text
+   python "for i in range(10): \
+     monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x00001000'); \
+     monitor.Parse('emulation RunFor \"0.2\"'); \
+     monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x10000000'); \
+     monitor.Parse('emulation RunFor \"0.2\"'); \
+     monitor.Parse('sysbus.gpioPortD.UserLED State')"
+   ```
+
+   You'll see `True / False / True / False …` scroll past — that
+   is the LED blinking at 2.5 Hz of *simulated* time. (Wall-clock
+   speed depends on how fast Renode is running; the **virtual**
+   period is exactly 400 ms per blink.)
+
+   If the multi-line `python` is awkward in your terminal, paste
+   it as a single line — the `\` continuations are just for
+   readability.
+
+   ### c) Visual blink in noVNC (port 6080)
+
+   If the noVNC desktop is up, pop a dedicated LED widget:
+
+   ```text
+   showAnalyzer sysbus.gpioPortD.UserLED Antmicro.Renode.Analyzers.LEDAnalyzer
+   ```
+
+   A small LED-shaped square appears in the noVNC tab. Run the
+   blink loop from (b) and the square turns on/off in lockstep
+   with the `True`/`False` you see in the monitor. This is the
+   closest analog to "watching a real Discovery board on your
+   desk".
+
+   ### d) Trace every state change to the console
+
+   Have Renode log a line every time `UserLED` changes state, no
+   matter who flipped it (your `WriteDoubleWord`, the firmware,
+   or anyone else):
+
+   ```text
+   logLevel -1 sysbus.gpioPortD.UserLED
+   ```
+
+   Now any `WriteDoubleWord` to BSRR produces a `[NOISY]
+   gpioPortD.UserLED: state = True/False` log line. Reset with
+   `logLevel 3 sysbus.gpioPortD.UserLED`.
+
+   When you're done, resume the firmware with `start` so Contiki
+   keeps running.
 
 2. **Time-travel.** Pause, then advance simulated time in
    precise chunks:
