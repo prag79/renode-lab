@@ -42,6 +42,42 @@ the entry point waiting. At the monitor prompt, type:
 start
 ```
 
+## 1a. Invoking the monitor in Codespaces
+
+In Codespaces there is no native Renode GUI window — the labs run the
+**Renode monitor as a text console inside your terminal** (the
+dispatcher passes `--console --disable-gui`). Three ways to reach it,
+easiest first:
+
+**Console monitor (recommended).** Open a terminal and run `lab demo`.
+The `--console` flag makes Renode's monitor appear inline as the
+`(machine-0)` prompt in that same terminal, with the platform and ELF
+already loaded. Type `start` to run, then drive it with monitor
+commands (`pause`, `sysbus.cpu PC`, `sysbus ReadDoubleWord 0x70000000`,
+`quit`, …). Running `lab monitor` (or `renode --console`) gives an
+empty monitor with no script loaded.
+
+**Telnet monitor over a forwarded port.** The devcontainer forwards
+port **1234** ("Renode telnet monitor"). Expose the monitor on that
+socket instead of stdio:
+
+```bash
+cd ~/work/Demo && make
+renode --disable-gui --port 1234 bare_demo.resc
+```
+
+then connect from another terminal:
+
+```bash
+telnet localhost 1234
+```
+
+**noVNC desktop (GUI analyzers).** Port **6080** (path `/vnc.html`)
+serves a browser desktop for Renode's GUI windows. The Demo has no UART
+and the dispatcher runs `--disable-gui`, so the console monitor above is
+the one you want; the desktop matters only for labs that pop UART/GUI
+analyzers.
+
 ## 2. What just happened
 
 `bare_demo.resc` does the usual three steps, plus turns on verbose
@@ -87,6 +123,64 @@ SmartTimer register map (as used by the firmware):
 | `0x04` | `PERIOD` | period value |
 | `0x08` | `DUTY` | duty value |
 | `0x0C` | `STATUS` | bit0 `PENDING` |
+
+## 3a. Inspecting the ELF with objdump
+
+Before (or instead of) running it, you can look inside `sw/bare.elf`
+with the cross-toolchain's binary utilities. Use the **`arm-none-eabi-`**
+prefixed tools, not the host ones, so they understand ARM code.
+
+**Disassemble the code** (`-d`):
+
+```bash
+arm-none-eabi-objdump -d sw/bare.elf
+```
+
+You'll see `_start` at `0x80000000` (the RAM base from `link.ld`),
+followed by `main`, `mmio_write32`, and `mmio_read32`.
+
+**Disassemble interleaved with C source** (`-S`, works because we build
+with `-g`):
+
+```bash
+arm-none-eabi-objdump -S sw/bare.elf
+```
+
+**List the sections and their addresses/sizes** (`-h`):
+
+```bash
+arm-none-eabi-objdump -h sw/bare.elf
+```
+
+Shows `.text`, `.rodata`, `.data`, `.bss` placed in RAM — the layout
+`link.ld` dictated.
+
+**Show the file/entry-point header** (`-f`):
+
+```bash
+arm-none-eabi-objdump -f sw/bare.elf      # 'start address 0x80000000'
+```
+
+**List symbols** (`-t`, or the dedicated `nm` tool):
+
+```bash
+arm-none-eabi-objdump -t sw/bare.elf
+arm-none-eabi-nm -n sw/bare.elf           # symbols sorted by address
+```
+
+Look for `_start`, `main`, `_stack_top`, `_bss_start`, `_bss_end` —
+the symbols `start.S` and the linker script define.
+
+**For ELF metadata specifically**, `readelf` is the sharper tool:
+
+```bash
+arm-none-eabi-readelf -h sw/bare.elf      # ELF header (class, machine, entry)
+arm-none-eabi-readelf -l sw/bare.elf      # program headers (load segments)
+arm-none-eabi-readelf -S sw/bare.elf      # section headers
+```
+
+> See `BUILD_INTERNALS.pdf` in this folder for a deeper explanation of
+> what an ELF file is and what each of these parts contains.
 
 ## 4. What to observe
 
