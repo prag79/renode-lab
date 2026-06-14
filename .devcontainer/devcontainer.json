@@ -25,7 +25,7 @@
     }
   },
 
-  "postAttachCommand": "echo 'Renode lab ready. Try: lab list   |   lab 01   |   lab 02   |   lab 03   |   monitor'",
+  "postAttachCommand": "printf '\\n\\033[1;36mRenode lab ready.\\033[0m\\n\\n' && lab list",
 
   "hostRequirements": {
     "cpus": 2,

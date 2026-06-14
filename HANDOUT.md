@@ -1,9 +1,11 @@
 # Student Handout — Renode Lab on GitHub Codespaces
 
-Welcome. Over the next few hours you will simulate three different
-embedded systems — a Cortex-M4 microcontroller, a multi-core
-RISC-V Linux SoC, and a custom 9-line RV64 SoC of your own — all
-inside a browser tab, with **nothing installed on your laptop**.
+Welcome. Over the next few hours you will simulate eight different
+embedded systems — from a 5-minute MMIO taste on a bare-metal ARM
+Cortex-A9, through a Cortex-M4 microcontroller and a multi-core
+RISC-V Linux SoC, all the way to a SiFive FE310 with timer interrupts,
+a Robot-driven CI suite, and a peripheral you write yourself in C# —
+all inside a browser tab, with **nothing installed on your laptop**.
 
 This document walks you through the setup once. After that,
 everything you need is in the per-lab `README.md` files in the
@@ -123,13 +125,18 @@ already), type:
 lab list
 ```
 
-You should see the three available labs:
+You should see all the available labs:
 
 ```
 Available labs:
+  00       - bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: lab demo)
   01       - bundled STM32F4 demo (sanity check)
   02       - Linux on SiFive HiFive Unleashed (RISC-V)
   03       - custom RV64 SoC + bare-metal hello world
+  04       - bare-metal on a SiFive FE310 (HiFive1): UART + GPIO blink
+  05       - FE310 timer interrupts: blink from a CLINT ISR
+  06       - headless regression testing with the Robot framework
+  07       - model your own peripheral (custom C# timer IP)
   monitor  - plain Renode interactive monitor
 ```
 
@@ -154,7 +161,7 @@ first, your environment is healthy. Type `quit` to exit.
 
 If anything above fails, see **§ 5 Troubleshooting**.
 
-## 3. The three exercises
+## 3. The eight exercises
 
 Each lab has its own detailed `README.md` with a 7-section
 walkthrough — bring up, what just happened, first commands,
@@ -163,6 +170,7 @@ experiments, and clean exit.
 
 | Lab | Time | What you'll do | Detailed README |
 |---|---|---|---|
+| **00** | ~5 min | A 5-minute MMIO warm-up: bare-metal ARM Cortex-A9 reads/writes four 32-bit registers in a memory-mapped "SmartTimer" stub, then you read them back from the monitor. (Aliased: `lab demo`.) | [`labs/00-Demo/README.md`](labs/00-Demo/README.md) |
 | **01** | ~20 min | Boot a bundled Contiki firmware on a simulated STM32F4 Discovery board. Read UART, single-step the CPU, blink the on-board LED from the simulator. | [`labs/01-bundled-stm32f4/README.md`](labs/01-bundled-stm32f4/README.md) |
 | **02** | ~30 min | Boot an unmodified RISC-V Linux kernel (5 cores, OpenSBI, BusyBox userspace) on the SiFive HiFive Unleashed model. Poke around `/proc`, trace UART traffic at the bus level. | [`labs/02-linux-on-hifive/README.md`](labs/02-linux-on-hifive/README.md) |
 | **03** | ~45 min | Cross-compile bare-metal C for RV64. Run it on a 9-line custom SoC you can edit. Add a second peripheral with one line. | [`labs/03-custom-soc/README.md`](labs/03-custom-soc/README.md) |
@@ -171,10 +179,15 @@ experiments, and clean exit.
 | **06** | ~45 min | Headless CI: write a Robot Framework suite that boots firmware, asserts UART output, and fails the build (non-zero exit) on regressions. | [`labs/06-robot-testing/README.md`](labs/06-robot-testing/README.md) |
 | **07** | ~75 min | Model your own peripheral: write a memory-mapped timer IP in C#, compiled by Renode at runtime, that raises an interrupt the firmware handles. | [`labs/07-custom-peripheral/README.md`](labs/07-custom-peripheral/README.md) |
 
-Do them **in order** — they increase in difficulty. Each one
-introduces a concept the next assumes (the three Renode primitives
-`mach create`, `LoadPlatformDescription`, `LoadELF` + `start`; then
-real peripherals, interrupts, and automated testing).
+Do them **in order** — they increase in difficulty. Lab 00 is a 5-minute
+sanity check that the toolchain works; 01–02 then run bundled images,
+03 builds a minimal custom SoC, 04–05 move to a real SiFive chip with
+real peripherals and interrupts, 06 turns it all into an automated
+regression test, and 07 has you write a brand-new peripheral model that
+the CPU talks to. Each one introduces a concept the next assumes (the
+three Renode primitives `mach create`, `LoadPlatformDescription`,
+`LoadELF` + `start`; then real peripherals, interrupts, and automated
+testing).
 
 ## 4. Where your edits live
 
@@ -195,10 +208,79 @@ from there:
   edit `~/work/<lab-name>/...`. The next `lab NN` reuses your
   edits (`cp -ru` is idempotent — it never overwrites existing
   files).
-- If you want changes to **outlive Codespace deletion**, copy
-  them into `/workspaces/renode-lab/labs/...` and `git push`.
-  That requires you to fork the repo first (GitHub will offer
-  this when you try to push).
+- If you want changes to **outlive Codespace deletion**, you must
+  push them to a git remote you own — see § 4.1 below. **A pull
+  request is *not* required just to keep your work**; it's only
+  needed if you want your changes merged into upstream.
+
+### 4.1 Persisting your work past Codespace deletion
+
+`prag79/renode-lab` is read-only for you (only the maintainer can
+push). To save your edits, fork the repo and push to your fork.
+Run these commands **inside the Codespace**, in the cloned repo
+at `/workspaces/renode-lab/`. Step 1 is one-time; steps 2–4 are
+the loop you'll run any time you want to checkpoint progress.
+
+```bash
+cd /workspaces/renode-lab
+```
+
+**1. One-time: fork on GitHub and rewire the remotes.** The
+`gh repo fork --remote` flag automatically renames the existing
+`origin` (which points at `prag79/renode-lab`) to `upstream` and
+adds your fork as the new `origin`:
+
+```bash
+gh repo fork --remote --remote-name=origin
+git remote -v       # sanity check:
+                    #   origin    https://github.com/<your-username>/renode-lab.git
+                    #   upstream  https://github.com/prag79/renode-lab.git
+```
+
+**2. (Recommended) work on a branch, not on `main`.** This keeps
+your tinkering separate from upstream so future `git pull
+upstream main` is conflict-free:
+
+```bash
+git checkout -b my-experiments
+```
+
+**3. Copy your edits from `~/work/...` back into the tracked
+tree.** `cp -ru` mirrors files only when newer:
+
+```bash
+cp -ru ~/work/00-Demo/.        labs/00-Demo/
+cp -ru ~/work/03-custom-soc/.  labs/03-custom-soc/
+# ...repeat for any other lab you tweaked.
+```
+
+**4. Commit and push to your fork.**
+
+```bash
+git add -A
+git status                                             # review what changed
+git commit -m "lab 03: my UART experiments"
+git push -u origin my-experiments                      # pushes to <you>/renode-lab
+```
+
+Visit `https://github.com/<your-username>/renode-lab/tree/my-experiments`
+and confirm your files are there. The Codespace itself is now
+disposable: `gh codespace delete -c <name>` is safe.
+
+**Get your work back on a fresh laptop / new Codespace.** Open a
+new Codespace **from your fork** (on `<you>/renode-lab` click
+*Code → Codespaces → Create on `my-experiments`*) and your edits
+are already in `/workspaces/renode-lab/`.
+
+**Optional — contribute upstream.** If you fixed a typo or want
+to share a lab improvement with everyone, open a PR:
+
+```bash
+gh pr create --repo prag79/renode-lab \
+    --base main --head "$(gh api user -q .login):my-experiments" \
+    --title "lab 03: my UART experiments" \
+    --body  "Short description of what changed and why."
+```
 
 ## 5. Troubleshooting
 
@@ -257,6 +339,8 @@ cheat sheet):
 
 ```
 Open lab:           click the badge in the README
+List labs:          lab list                              (banner runs this on attach)
+Quick taste:        lab 00      (a.k.a. lab demo)         5-min ARM MMIO warm-up
 Verify install:     lab list && lab 01 -> start -> sysbus.cpu PC -> quit
 Edit + re-run:      edit ~/work/<lab>/..., then lab NN
 Read UART:          (in monitor) sysbus.uartN CreateFileBackend @/tmp/uartN.log true
@@ -267,6 +351,10 @@ Read PC:            sysbus.cpu PC
 Step one insn:      sysbus.cpu Step
 Reset firmware:     machine Reset
 Exit Renode:        quit
+Save your work:     gh repo fork --remote --remote-name=origin    (one-time)
+                    git checkout -b my-experiments
+                    cp -ru ~/work/<lab>/. labs/<lab>/             (per lab)
+                    git add -A && git commit -m "..." && git push -u origin my-experiments
 Stop Codespace:     bottom-left of VS Code -> Stop codespace
-Delete Codespace:   gh codespace delete -c <name> --force
+Delete Codespace:   gh codespace delete -c <name> --force         (safe AFTER push above)
 ```

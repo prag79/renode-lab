@@ -1,4 +1,4 @@
-# Demo — Bare-metal ARM Cortex-A9 + SmartTimer MMIO
+# Lab 00-Demo — Bare-metal ARM Cortex-A9 + SmartTimer MMIO
 
 A small scratch/demo lab: a bare-metal ARM (Cortex-A9) program that
 reads and writes a block of memory-mapped registers — a stand-in for
@@ -16,20 +16,21 @@ a "SmartTimer" peripheral. It's the simplest possible illustration of
 
 ## 1. Run it
 
-`Demo` is wired into the lab dispatcher:
+`00-Demo` is wired into the lab dispatcher:
 
 ```bash
-lab demo
+lab 00          # canonical
+lab demo        # back-compat alias (works the same)
 ```
 
-This mirrors `/labs/Demo/` into `~/work/Demo/`, runs `make`
+This mirrors `/labs/00-Demo/` into `~/work/00-Demo/`, runs `make`
 (cross-compiles with `arm-none-eabi-gcc` into `sw/bare.elf`), then
 launches `renode --console bare_demo.resc`.
 
 Or run it by hand after the first invocation:
 
 ```bash
-cd ~/work/Demo
+cd ~/work/00-Demo
 make
 renode --console bare_demo.resc
 ```
@@ -49,7 +50,7 @@ In Codespaces there is no native Renode GUI window — the labs run the
 dispatcher passes `--console --disable-gui`). Three ways to reach it,
 easiest first:
 
-**Console monitor (recommended).** Open a terminal and run `lab demo`.
+**Console monitor (recommended).** Open a terminal and run `lab 00`.
 The `--console` flag makes Renode's monitor appear inline as the
 `(machine-0)` prompt in that same terminal, with the platform and ELF
 already loaded. Type `start` to run, then drive it with monitor
@@ -62,7 +63,7 @@ port **1234** ("Renode telnet monitor"). Expose the monitor on that
 socket instead of stdio:
 
 ```bash
-cd ~/work/Demo && make
+cd ~/work/00-Demo && make
 renode --disable-gui --port 1234 bare_demo.resc
 ```
 

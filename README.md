@@ -13,12 +13,13 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Seven exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
+- Eight exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
 ```bash
 lab list                # see available exercises
+lab 00                  # bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: lab demo)
 lab 01                  # bundled STM32F4 demo (sanity check)
 lab 02                  # boot Linux on SiFive HiFive Unleashed (RISC-V)
 lab 03                  # custom RV64 SoC + bare-metal hello world
@@ -26,7 +27,7 @@ lab 04                  # bare-metal on a SiFive FE310 (HiFive1): UART + GPIO bl
 lab 05                  # FE310 timer interrupts: blink from a CLINT ISR
 lab 06                  # headless regression testing with the Robot framework
 lab 07                  # model your own peripheral (custom C# timer IP)
-monitor                 # plain Renode interactive monitor
+lab monitor             # plain Renode interactive monitor
 ```
 
 ### Where your editable copy of each lab lives
@@ -37,9 +38,9 @@ The `lab NN` dispatcher follows a copy-on-first-use pattern:
 |---|---|---|
 | `/labs/<lab-name>/` | Canonical content baked into the image | no — wiped on rebuild |
 | `~/work/<lab-name>/` | Mirror created on first `lab NN` invocation | **yes — edit here** |
-| `/workspaces/renode-lab/` | The cloned git repo | yes; `git push` to keep changes past Codespace deletion |
+| `/workspaces/renode-lab/` | The cloned git repo | yes; **`git push` to your fork** to keep changes past Codespace deletion |
 
-So the workflow is:
+So the day-to-day workflow is:
 
 ```bash
 lab 01                  # mirrors /labs/01-bundled-stm32f4 -> ~/work/01-bundled-stm32f4 and runs it
@@ -55,12 +56,54 @@ Or just run from anywhere once the working copy exists:
 cd ~/work/03-custom-soc && renode --console renode/mini-rv.resc
 ```
 
-Edits to `~/work/...` persist across Codespace stop/start. To make changes survive Codespace **deletion**, copy them back into `/workspaces/renode-lab/labs/...` and `git push`.
+### Persisting your work past Codespace deletion
+
+Edits under `~/work/...` survive Codespace **stop/start** but are lost when the Codespace is **deleted** (along with everything else in the container). To keep them, you must copy them back into the cloned repo at `/workspaces/renode-lab/...` and `git push` them — but **not to `prag79/renode-lab`** (you don't have write access). Push to **your own fork** instead. **A pull request is *not* needed just to keep your work** — it's only needed if you want to contribute changes back to upstream.
+
+Run these commands once, on any new Codespace, the first time you want to save something:
+
+```bash
+# (Run inside the Codespace, in the cloned repo.)
+cd /workspaces/renode-lab
+
+# 1. One-time: fork prag79/renode-lab on GitHub and rewire the local clone
+#    so 'origin' points at YOUR fork and 'upstream' points at prag79/renode-lab.
+gh repo fork --remote --remote-name=origin
+git remote -v       # sanity check: origin = <you>/renode-lab, upstream = prag79/renode-lab
+
+# 2. (Recommended) work on a branch, not main:
+git checkout -b my-experiments
+
+# 3. Copy whatever you edited under ~/work/... back into the tracked tree:
+cp -ru ~/work/03-custom-soc/. labs/03-custom-soc/
+cp -ru ~/work/00-Demo/.        labs/00-Demo/
+# ...repeat for any other lab you tweaked.
+
+# 4. Stage, commit, push to YOUR fork:
+git add -A
+git status                                             # review what changed
+git commit -m "lab 03: my UART experiments"
+git push -u origin my-experiments                      # pushes to <you>/renode-lab
+```
+
+Verify the branch landed by visiting `https://github.com/<your-username>/renode-lab/tree/my-experiments` in a browser. Once you see your files there, the Codespace itself is now disposable — `gh codespace delete -c <name>` is safe.
+
+To grab those changes back in a fresh Codespace: open a new Codespace **from your fork** (click "Code → Codespaces → Create on my-experiments" on `<you>/renode-lab`), and your edits are already there.
+
+**Optional — contribute upstream.** If you want your improvements merged into `prag79/renode-lab` (e.g. you fixed a typo in a lab README), open a PR after step 4:
+
+```bash
+gh pr create --repo prag79/renode-lab \
+    --base main --head "$(gh api user -q .login):my-experiments" \
+    --title "lab 03: my UART experiments" \
+    --body  "Short description of what changed and why."
+```
 
 ## Exercises
 
 | Lab | What it teaches | Source |
 |---|---|---|
+| `lab 00` (or `lab demo`) | Smallest possible MMIO example — bare-metal ARM Cortex-A9 reads/writes a stub "SmartTimer" memory window | [`labs/00-Demo/`](labs/00-Demo/) |
 | `lab 01` | Renode binary works end-to-end | [`labs/01-bundled-stm32f4/`](labs/01-bundled-stm32f4/) |
 | `lab 02` | Cycle-accurate Linux boot on a real SoC model | [`labs/02-linux-on-hifive/`](labs/02-linux-on-hifive/) |
 | `lab 03` | Build a custom SoC from a 9-line `.repl`, write bare-metal C, run it | [`labs/03-custom-soc/`](labs/03-custom-soc/) |
@@ -69,11 +112,11 @@ Edits to `~/work/...` persist across Codespace stop/start. To make changes survi
 | `lab 06` | Headless CI: assert firmware behaviour with a Renode Robot suite | [`labs/06-robot-testing/`](labs/06-robot-testing/) |
 | `lab 07` | Model your own peripheral in C#: a memory-mapped timer IP that interrupts the CPU | [`labs/07-custom-peripheral/`](labs/07-custom-peripheral/) |
 
-Labs are ordered by difficulty: 01–02 run bundled images, 03 builds a
-minimal custom SoC, 04–05 move to a real SiFive chip with real
-peripherals and interrupts, 06 turns it all into an automated
-regression test, and 07 has you write a brand-new peripheral model
-that the CPU talks to.
+Labs are ordered by difficulty: **00** is a 5-minute taste of MMIO on
+ARM, 01–02 run bundled images, 03 builds a minimal custom SoC, 04–05
+move to a real SiFive chip with real peripherals and interrupts, 06
+turns it all into an automated regression test, and 07 has you write a
+brand-new peripheral model that the CPU talks to.
 
 ## Step-by-step tutorials
 
@@ -93,6 +136,34 @@ Two pieces of background that apply to **all three** labs:
   Renode's analyzer windows render. If the port isn't forwarded,
   use the `CreateFileBackend` / `CreateServerSocketTerminal`
   recipes shown below to read UART without a GUI.
+
+### Lab 00 — 5-minute MMIO taste on bare-metal ARM
+
+Full walkthrough: [`labs/00-Demo/README.md`](labs/00-Demo/README.md).
+
+```bash
+lab 00            # cross-compiles ARM bare-metal code, boots a Cortex-A9
+```
+
+The smallest possible "is your toolchain wired up?" lab: an ARM
+Cortex-A9 program writes four 32-bit values into a memory-mapped
+"SmartTimer" register window at `0x70000000` and reads them back. The
+SmartTimer is a `Memory.MappedMemory` stub here — see lab 07 for the
+behavioural-model upgrade.
+
+After `start` in the monitor:
+
+```text
+pause
+sysbus ReadDoubleWord 0x70000000      # CONTROL  -> 0x3 (ENABLE | IRQ_ENABLE)
+sysbus ReadDoubleWord 0x70000004      # PERIOD   -> 0xF4240
+sysbus ReadDoubleWord 0x70000008      # DUTY     -> 0x7A120
+sysbus ReadDoubleWord 0x7000000C      # STATUS   -> 0x1
+sysbus WriteDoubleWord 0x70000004 0x1234
+sysbus ReadDoubleWord  0x70000004      # -> 0x1234   (you just poked the bus)
+```
+
+Exit: `quit` at the monitor.
 
 ### Lab 01 — STM32F4 bringup → first monitor commands
 
@@ -357,7 +428,7 @@ See `renode-codespaces-lab-guide.md` (in the parent `qemu_workspace/`) for the f
 | Compute | 120 core-hours | 30 wall-clock h on this 2-core machine |
 | Storage | 15 GB-month | One persistent Codespace = ~16 GB-month → ~$0.07/mo overage, or $0 if deleted between sessions |
 
-Stopping a Codespace stops compute billing. Storage keeps ticking until you **delete** it; `git push` your work first.
+Stopping a Codespace stops compute billing. Storage keeps ticking until you **delete** it; push your work to your fork first (see [Persisting your work past Codespace deletion](#persisting-your-work-past-codespace-deletion)).
 
 ## Troubleshooting
 
