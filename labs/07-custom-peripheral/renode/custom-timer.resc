@@ -1,0 +1,14 @@
+:name: Custom timer IP on a RISC-V SoC
+:description: Compile a hand-written C# peripheral and run firmware that uses it.
+
+mach create "custom-soc"
+
+# Compile and load our peripheral. Renode detects the .cs extension and
+# builds it into the running process; the type then becomes available to
+# the platform description below as Timers.SimpleTimer.
+i @peripherals/SimpleTimer.cs
+
+machine LoadPlatformDescription @renode/custom-timer.repl
+sysbus LoadELF @firmware.elf
+showAnalyzer uart
+start

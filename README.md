@@ -13,7 +13,7 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Six exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
+- Seven exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
@@ -25,6 +25,7 @@ lab 03                  # custom RV64 SoC + bare-metal hello world
 lab 04                  # bare-metal on a SiFive FE310 (HiFive1): UART + GPIO blink
 lab 05                  # FE310 timer interrupts: blink from a CLINT ISR
 lab 06                  # headless regression testing with the Robot framework
+lab 07                  # model your own peripheral (custom C# timer IP)
 monitor                 # plain Renode interactive monitor
 ```
 
@@ -66,11 +67,13 @@ Edits to `~/work/...` persist across Codespace stop/start. To make changes survi
 | `lab 04` | Bare-metal on a **real** SiFive FE310 (HiFive1): RV32, SiFive UART + GPIO | [`labs/04-sifive-fe310/`](labs/04-sifive-fe310/) |
 | `lab 05` | RISC-V interrupts: drive the LED from a CLINT machine-timer ISR | [`labs/05-fe310-interrupts/`](labs/05-fe310-interrupts/) |
 | `lab 06` | Headless CI: assert firmware behaviour with a Renode Robot suite | [`labs/06-robot-testing/`](labs/06-robot-testing/) |
+| `lab 07` | Model your own peripheral in C#: a memory-mapped timer IP that interrupts the CPU | [`labs/07-custom-peripheral/`](labs/07-custom-peripheral/) |
 
 Labs are ordered by difficulty: 01–02 run bundled images, 03 builds a
 minimal custom SoC, 04–05 move to a real SiFive chip with real
-peripherals and interrupts, and 06 turns it all into an automated
-regression test.
+peripherals and interrupts, 06 turns it all into an automated
+regression test, and 07 has you write a brand-new peripheral model
+that the CPU talks to.
 
 ## Step-by-step tutorials
 
@@ -306,6 +309,34 @@ Mini-experiment: break a check in `src/selftest.c` (e.g. make the ALU
 test compare against the wrong value), re-run `lab 06`, and watch the
 suite go **red** and `renode-test` exit non-zero — exactly what fails
 a real CI job.
+
+### Lab 07 — Model your own peripheral (custom timer IP)
+
+Full walkthrough: [`labs/07-custom-peripheral/README.md`](labs/07-custom-peripheral/README.md).
+
+```bash
+lab 07            # compiles a C# peripheral, runs firmware that drives it
+```
+
+The capstone: you write the *hardware*. `peripherals/SimpleTimer.cs`
+is a memory-mapped timer IP (CONTROL/RELOAD/COUNTER/STATUS registers,
+a `LimitTimer`, and a `GPIO` interrupt line). Renode compiles it on
+the fly (`i @peripherals/SimpleTimer.cs`), the platform wires its IRQ
+to `cpu@11`, and bare-metal firmware programs it and handles the
+interrupt:
+
+```
+*** Custom peripheral lab: SimpleTimer IP ***
+tick from my custom timer IP
+tick from my custom timer IP
+...
+```
+
+Mini-experiment: add a read-only `TICK_COUNT` register to the C# model
+in ~4 lines, re-run, and read it from the monitor with
+`sysbus ReadDoubleWord 0x10001010` — you've just extended a hardware
+block. Your peripheral shows up in `peripherals`, logs bus accesses,
+and raises real interrupts, indistinguishable from a built-in model.
 
 ## How this works
 

@@ -169,6 +169,7 @@ experiments, and clean exit.
 | **04** | ~45 min | Bare-metal on a **real** SiFive FE310 (HiFive1). Drive the SiFive UART and GPIO at their datasheet addresses; blink an LED on RV32. | [`labs/04-sifive-fe310/README.md`](labs/04-sifive-fe310/README.md) |
 | **05** | ~60 min | RISC-V machine-mode interrupts: program `mtvec`/`mie`/`mstatus` and the CLINT timer, then blink the LED from an interrupt handler. | [`labs/05-fe310-interrupts/README.md`](labs/05-fe310-interrupts/README.md) |
 | **06** | ~45 min | Headless CI: write a Robot Framework suite that boots firmware, asserts UART output, and fails the build (non-zero exit) on regressions. | [`labs/06-robot-testing/README.md`](labs/06-robot-testing/README.md) |
+| **07** | ~75 min | Model your own peripheral: write a memory-mapped timer IP in C#, compiled by Renode at runtime, that raises an interrupt the firmware handles. | [`labs/07-custom-peripheral/README.md`](labs/07-custom-peripheral/README.md) |
 
 Do them **in order** — they increase in difficulty. Each one
 introduces a concept the next assumes (the three Renode primitives

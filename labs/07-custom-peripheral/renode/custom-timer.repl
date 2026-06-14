@@ -1,0 +1,17 @@
+// A minimal RISC-V SoC whose only "special" block is the timer IP we
+// wrote ourselves in peripherals/SimpleTimer.cs. Its interrupt line is
+// wired straight to the CPU's machine-external-interrupt input (irq 11),
+// so no PLIC is needed for this single source.
+
+cpu: CPU.RiscV64 @ sysbus
+    cpuType: "rv64imac"
+    privilegeArchitecture: PrivilegeArchitecture.Priv1_10
+    timeProvider: empty
+
+ram: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000000
+
+uart: UART.NS16550 @ sysbus 0x10000000
+
+mytimer: Timers.SimpleTimer @ sysbus 0x10001000
+    IRQ -> cpu@11
