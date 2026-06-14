@@ -15,7 +15,7 @@
   "portsAttributes": {
     "6080": {
       "label": "Renode noVNC desktop",
-      "onAutoForward": "openBrowser",
+      "onAutoForward": "notify",
       "visibility": "private"
     },
     "1234": {
