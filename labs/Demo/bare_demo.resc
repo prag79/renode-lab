@@ -17,7 +17,7 @@ sysbus LogAllPeripheralsAccess true
 #sysbus LogPeripheralAccess sysbus.smarttimer true
 
 # Load and run the bare-metal ELF
-sysbus LoadELF @sw/bare.ELF
+sysbus LoadELF @sw/bare.elf
 
 # Optional -dump out each step of execution
 # cpu CreateExecutionTracing "tracer_name" #cpu.log PCAndOpcode

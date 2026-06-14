@@ -1,5 +1,7 @@
 CROSS   ?= arm-none-eabi-
 CC      := $(CROSS)gcc
+AS      := $(CROSS)as
+LD      := $(CROSS)ld
 OBJCOPY := $(CROSS)objcopy
 
 CFLAGS  := -mcpu=cortex-a9 -marm \
@@ -7,7 +9,7 @@ CFLAGS  := -mcpu=cortex-a9 -marm \
            -Wall -O2 -g
 LDFLAGS := -T src/link.ld -nostdlib
 
-OBJS    := src/start.o src/hello.o
+OBJS    := src/start.o src/main.o
 
 all: sw/bare.elf sw/bare.bin
 
