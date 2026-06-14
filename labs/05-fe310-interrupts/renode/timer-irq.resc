@@ -1,0 +1,8 @@
+:name: FE310 machine-timer interrupt blink
+:description: Blink the LED from a CLINT timer ISR instead of a busy-loop.
+
+mach create "hifive1-irq"
+machine LoadPlatformDescription @renode/hifive1.repl
+sysbus LoadELF @timer.elf
+showAnalyzer uart0
+start

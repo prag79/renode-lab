@@ -1,0 +1,8 @@
+:name: SiFive FE310 (HiFive1) bare-metal blink
+:description: Build and run your own RV32 firmware on a real SiFive SoC map.
+
+mach create "hifive1"
+machine LoadPlatformDescription @renode/hifive1.repl
+sysbus LoadELF @blink.elf
+showAnalyzer uart0
+start

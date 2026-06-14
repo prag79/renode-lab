@@ -31,6 +31,7 @@ RUN ARCH="$(dpkg --print-architecture)" && \
          -O /tmp/renode.tgz && \
     mkdir -p /opt/renode && tar -xzf /tmp/renode.tgz -C /opt/renode --strip-components=1 && \
     ln -s /opt/renode/renode /usr/local/bin/renode && \
+    if [ -f /opt/renode/renode-test ]; then ln -s /opt/renode/renode-test /usr/local/bin/renode-test; fi && \
     rm /tmp/renode.tgz
 
 # Non-root user with sudo (matches devcontainer.json's remoteUser).

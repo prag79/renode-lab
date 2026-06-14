@@ -1,0 +1,29 @@
+// Same FE310 SoC as lab 04. The CLINT is the star this time: its
+// machine timer (mtime / mtimecmp) drives the interrupt that blinks
+// the LED. CLINT irq line 1 -> cpu@7 is the machine-timer interrupt.
+
+cpu: CPU.RiscV32 @ sysbus
+    cpuType: "rv32imac_zicsr_zifencei"
+    privilegedArchitecture: PrivilegedArchitecture.Priv1_10
+    timeProvider: clint
+
+dtim: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000
+
+maskRom: Memory.MappedMemory @ sysbus 0x1000
+    size: 0x1000
+
+clint: IRQControllers.CoreLevelInterruptor @ sysbus 0x02000000
+    [0,1] -> cpu@[3,7]
+    frequency: 62000000
+
+plic: IRQControllers.PlatformLevelInterruptController @ sysbus 0x0C000000
+    0 -> cpu@11
+    numberOfSources: 52
+    numberOfContexts: 1
+
+uart0: UART.SiFive_UART @ sysbus 0x10013000
+    IRQ -> plic@3
+
+gpio: GPIOPort.SiFive_GPIO @ sysbus 0x10012000
+    [0-31] -> plic@[8-39]

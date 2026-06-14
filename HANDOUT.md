@@ -166,10 +166,14 @@ experiments, and clean exit.
 | **01** | ~20 min | Boot a bundled Contiki firmware on a simulated STM32F4 Discovery board. Read UART, single-step the CPU, blink the on-board LED from the simulator. | [`labs/01-bundled-stm32f4/README.md`](labs/01-bundled-stm32f4/README.md) |
 | **02** | ~30 min | Boot an unmodified RISC-V Linux kernel (5 cores, OpenSBI, BusyBox userspace) on the SiFive HiFive Unleashed model. Poke around `/proc`, trace UART traffic at the bus level. | [`labs/02-linux-on-hifive/README.md`](labs/02-linux-on-hifive/README.md) |
 | **03** | ~45 min | Cross-compile bare-metal C for RV64. Run it on a 9-line custom SoC you can edit. Add a second peripheral with one line. | [`labs/03-custom-soc/README.md`](labs/03-custom-soc/README.md) |
+| **04** | ~45 min | Bare-metal on a **real** SiFive FE310 (HiFive1). Drive the SiFive UART and GPIO at their datasheet addresses; blink an LED on RV32. | [`labs/04-sifive-fe310/README.md`](labs/04-sifive-fe310/README.md) |
+| **05** | ~60 min | RISC-V machine-mode interrupts: program `mtvec`/`mie`/`mstatus` and the CLINT timer, then blink the LED from an interrupt handler. | [`labs/05-fe310-interrupts/README.md`](labs/05-fe310-interrupts/README.md) |
+| **06** | ~45 min | Headless CI: write a Robot Framework suite that boots firmware, asserts UART output, and fails the build (non-zero exit) on regressions. | [`labs/06-robot-testing/README.md`](labs/06-robot-testing/README.md) |
 
-Do them **in order**. Each one introduces a concept that the
-next assumes (the three Renode primitives `mach create`,
-`LoadPlatformDescription`, `LoadELF` + `start`).
+Do them **in order** — they increase in difficulty. Each one
+introduces a concept the next assumes (the three Renode primitives
+`mach create`, `LoadPlatformDescription`, `LoadELF` + `start`; then
+real peripherals, interrupts, and automated testing).
 
 ## 4. Where your edits live
 

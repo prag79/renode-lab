@@ -13,7 +13,7 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Three exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
+- Six exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
@@ -22,6 +22,9 @@ lab list                # see available exercises
 lab 01                  # bundled STM32F4 demo (sanity check)
 lab 02                  # boot Linux on SiFive HiFive Unleashed (RISC-V)
 lab 03                  # custom RV64 SoC + bare-metal hello world
+lab 04                  # bare-metal on a SiFive FE310 (HiFive1): UART + GPIO blink
+lab 05                  # FE310 timer interrupts: blink from a CLINT ISR
+lab 06                  # headless regression testing with the Robot framework
 monitor                 # plain Renode interactive monitor
 ```
 
@@ -60,6 +63,14 @@ Edits to `~/work/...` persist across Codespace stop/start. To make changes survi
 | `lab 01` | Renode binary works end-to-end | [`labs/01-bundled-stm32f4/`](labs/01-bundled-stm32f4/) |
 | `lab 02` | Cycle-accurate Linux boot on a real SoC model | [`labs/02-linux-on-hifive/`](labs/02-linux-on-hifive/) |
 | `lab 03` | Build a custom SoC from a 9-line `.repl`, write bare-metal C, run it | [`labs/03-custom-soc/`](labs/03-custom-soc/) |
+| `lab 04` | Bare-metal on a **real** SiFive FE310 (HiFive1): RV32, SiFive UART + GPIO | [`labs/04-sifive-fe310/`](labs/04-sifive-fe310/) |
+| `lab 05` | RISC-V interrupts: drive the LED from a CLINT machine-timer ISR | [`labs/05-fe310-interrupts/`](labs/05-fe310-interrupts/) |
+| `lab 06` | Headless CI: assert firmware behaviour with a Renode Robot suite | [`labs/06-robot-testing/`](labs/06-robot-testing/) |
+
+Labs are ordered by difficulty: 01–02 run bundled images, 03 builds a
+minimal custom SoC, 04–05 move to a real SiFive chip with real
+peripherals and interrupts, and 06 turns it all into an automated
+regression test.
 
 ## Step-by-step tutorials
 
@@ -212,6 +223,89 @@ Re-run `lab 03`; `peripherals` now lists two UARTs. That is how
 cheap it is to extend a Renode SoC.
 
 Exit: `quit` at the monitor.
+
+### Lab 04 — Bare-metal on a real SiFive FE310 (HiFive1)
+
+Full walkthrough: [`labs/04-sifive-fe310/README.md`](labs/04-sifive-fe310/README.md).
+
+```bash
+lab 04            # builds RV32 firmware, runs it on the FE310 platform
+```
+
+Same build-and-run shape as lab 03, but the platform uses the **real
+SiFive FE310** memory map and two genuine SiFive peripherals (the
+SiFive UART — not an NS16550 — and the SiFive GPIO). The firmware
+prints a banner and blinks GPIO pin 19, narrating each toggle:
+
+```
+*** Hello from a SiFive FE310 (HiFive1)! ***
+LED on
+LED off
+...
+```
+
+Mini-experiment: watch the LED bit flip in the GPIO register from the
+monitor:
+
+```text
+pause
+sysbus ReadDoubleWord 0x1001200C         # bit 19 = LED state
+emulation RunFor "0.05"
+sysbus ReadDoubleWord 0x1001200C          # flipped
+```
+
+Exit: `quit` at the monitor.
+
+### Lab 05 — Interrupts: blink from a CLINT timer ISR
+
+Full walkthrough: [`labs/05-fe310-interrupts/README.md`](labs/05-fe310-interrupts/README.md).
+
+```bash
+lab 05            # CPU sleeps in wfi; the CLINT timer wakes it to blink
+```
+
+The hardest bare-metal lab: set up `mtvec`, enable `mie.MTIE` and
+`mstatus.MIE`, program the CLINT `mtimecmp`, and toggle the LED from
+the machine-timer interrupt handler. Each interrupt prints `tick`:
+
+```
+*** FE310 timer-interrupt blink ***
+tick
+tick
+...
+```
+
+Mini-experiment: confirm the trap cause after a tick:
+
+```text
+pause
+sysbus.cpu MCAUSE         # 0x80000007 = interrupt (top bit) + timer (7)
+```
+
+Exit: `quit` at the monitor.
+
+### Lab 06 — Headless regression testing with Robot
+
+Full walkthrough: [`labs/06-robot-testing/README.md`](labs/06-robot-testing/README.md).
+
+```bash
+lab 06            # builds firmware, then runs a Robot suite with renode-test
+```
+
+No GUI, no eyeballing — a Robot Framework suite boots the firmware,
+waits for specific UART lines, and asserts pass/fail with an exit
+code you can gate CI on:
+
+```
+Self-Test Should Pass                          | PASS |
+Platform Should Expose The UART                | PASS |
+2 tests, 2 passed, 0 failed
+```
+
+Mini-experiment: break a check in `src/selftest.c` (e.g. make the ALU
+test compare against the wrong value), re-run `lab 06`, and watch the
+suite go **red** and `renode-test` exit non-zero — exactly what fails
+a real CI job.
 
 ## How this works
 

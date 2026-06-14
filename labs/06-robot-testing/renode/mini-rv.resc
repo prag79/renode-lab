@@ -1,0 +1,8 @@
+:name: Renode CI self-test (mini-rv)
+:description: The device-under-test for the Robot suite; also runnable by hand.
+
+mach create "mini-rv"
+machine LoadPlatformDescription @renode/mini-rv.repl
+sysbus LoadELF @selftest.elf
+showAnalyzer uart
+start
