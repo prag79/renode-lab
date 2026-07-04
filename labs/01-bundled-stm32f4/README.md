@@ -234,14 +234,20 @@ for usage.
    ### b) Live blink loop you can watch (works without noVNC)
 
    Toggle 10 times with a 200 ms simulated delay between each
-   transition. The Renode monitor is line-oriented, so we put the
-   Python loop in a small `.resc` include file (the `.resc`
-   parser supports multi-line double-quoted strings; typing `\n`
-   directly at the monitor prompt does **not** work).
+   transition. Two files ship with the lab:
 
-   The lab ships a ready-made [`blink.resc`](blink.resc) helper
-   next to `stm32f4.resc`, so at the `(STM32F4_Discovery)` prompt
-   (machine paused):
+   - [`blink.py`](blink.py) — the actual Python loop (executes
+     `WriteDoubleWord` / `RunFor` / `State` for ten iterations).
+   - [`blink.resc`](blink.resc) — a one-line loader:
+     `python "execfile('blink.py')"`.
+
+   Two files instead of one because the Renode monitor's `.resc`
+   tokenizer does **not** accept multi-line double-quoted strings —
+   an inline `python "..."` block that spans lines fails with
+   `Could not tokenize here: python "`. Keeping the Python in a
+   `.py` file dodges that.
+
+   At the `(STM32F4_Discovery)` prompt (machine paused):
 
    ```text
    pause
@@ -251,9 +257,12 @@ for usage.
    You'll see `True / False / True / False …` scroll past — that
    is the LED blinking at 2.5 Hz of *simulated* time. (Wall-clock
    speed depends on how fast Renode is running; the **virtual**
-   period is exactly 400 ms per blink.) If you don't want to
-   create the file, just unroll the loop by pasting the six
-   toggle/`RunFor`/`State` lines directly a few times.
+   period is exactly 400 ms per blink.)
+
+   Prefer to skip the files entirely? Just paste the six
+   `WriteDoubleWord` / `RunFor` / `State` lines from `blink.py`
+   at the monitor prompt manually — no Python, no loop, no
+   escaping.
 
    ### c) Visual blink in noVNC (port 6080) — requires GUI mode
 

@@ -1,18 +1,19 @@
 # Toggle the STM32F4 Discovery user LED (PD12) 10 times with a
 # 200 ms simulated delay between each transition, printing the
-# LED state after each write. Load with `include @blink.resc`
-# from the Renode monitor. Machine must be paused first.
+# LED state after each write.
 #
-# GPIOD BSRR = 0x40020C18
-#   low  16 bits = SET   (write 1 -> pin goes high)
-#   high 16 bits = RESET (write 1 -> pin goes low)
-# PD12 => bit 12 in the low half, bit 28 in the high half.
+# Usage from the Renode monitor (machine must be paused first):
+#   pause
+#   include @blink.resc
+#
+# Implementation note: Renode's .resc tokenizer does NOT accept
+# multi-line double-quoted strings. Inlining a `python "..."`
+# block with real newlines fails with:
+#   Could not tokenize here:
+#     python "
+#            ^
+# So we keep the Python loop in blink.py and load it here with a
+# single-line execfile call. `lab 01` cd's into this directory
+# before starting Renode, so the relative path 'blink.py' resolves.
 
-python "
-for i in range(10):
-    monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x00001000')
-    monitor.Parse('emulation RunFor \"0.2\"')
-    monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x10000000')
-    monitor.Parse('emulation RunFor \"0.2\"')
-    monitor.Parse('sysbus.gpioPortD.UserLED State')
-"
+python "execfile('blink.py')"
