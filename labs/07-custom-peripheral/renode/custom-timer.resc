@@ -10,5 +10,8 @@ i @peripherals/SimpleTimer.cs
 
 machine LoadPlatformDescription @renode/custom-timer.repl
 sysbus LoadELF @firmware.elf
-showAnalyzer uart
+# Full sysbus path required — bare `uart` is not resolved here.
+# Headless fallback: `sysbus.uart CreateFileBackend @/tmp/uart.log true`
+# then `tail -f /tmp/uart.log` in another terminal.
+showAnalyzer sysbus.uart
 start

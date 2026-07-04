@@ -33,8 +33,25 @@ tick from my custom timer IP
 
 Each `tick` is your C# peripheral firing its `LimitReached` event,
 raising the IRQ line you wired to the CPU, and the firmware's trap
-handler acknowledging it. If the noVNC tab is unavailable, use the
-`CreateFileBackend` recipe (lab 03 §4) with `firmware.elf`.
+handler acknowledging it.
+
+**Seeing UART output:**
+
+- **Headless (default, `LAB_GUI=0`):** at the monitor prompt after
+  `start`, attach a file backend and tail it from another terminal:
+
+  ```text
+  sysbus.uart CreateFileBackend @/tmp/uart.log true
+  ```
+
+  ```bash
+  tail -f /tmp/uart.log
+  ```
+
+- **GUI mode (`LAB_GUI=1`):** the bundled script runs
+  `showAnalyzer sysbus.uart` (note the `sysbus.` prefix — bare
+  `uart` fails with *Peripheral not found*). Open the noVNC tab on
+  port **6080** (`/vnc.html`). See lab 01 §2 for switching modes.
 
 ## 2. The peripheral (`peripherals/SimpleTimer.cs`)
 
