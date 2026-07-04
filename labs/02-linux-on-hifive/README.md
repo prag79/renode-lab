@@ -17,12 +17,14 @@ invocation):
 
 ```
 cd ~/work/02-linux-on-hifive
-renode --plain --disable-gui --console linux-hifive.resc
+renode $RENODE_GUI_FLAGS --console linux-hifive.resc
 ```
 
 `linux-hifive.resc` simply `include`s the bundled
-`scripts/complex/hifive_unleashed/hifive_unleashed.resc` shipped
-inside `/opt/renode/`. Edit `linux-hifive.resc` (e.g. swap in a
+`scripts/single-node/hifive_unleashed.resc` shipped inside
+`/opt/renode/`. (Older Renode docs sometimes referenced
+`scripts/complex/hifive_unleashed/…`; that path does not exist in
+Renode 1.15.x.) Edit `linux-hifive.resc` (e.g. swap in a
 different upstream `.resc`, add `mach create` overrides, change
 the kernel command line) and re-run `lab 02` — your edits are
 preserved. After ~30 s of cache fetching (first run
