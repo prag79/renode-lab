@@ -53,30 +53,30 @@ case "$cmd" in
 
   01|01-bundled-stm32f4)
     prepare_workdir 01-bundled-stm32f4
-    exec renode --plain --disable-gui --console stm32f4.resc
+    exec renode --disable-gui --console stm32f4.resc
     ;;
 
   02|02-linux-on-hifive)
     prepare_workdir 02-linux-on-hifive
-    exec renode --plain --disable-gui --console linux-hifive.resc
+    exec renode --disable-gui --console linux-hifive.resc
     ;;
 
   03|03-custom-soc)
     prepare_workdir 03-custom-soc
     make
-    exec renode --plain --disable-gui --console renode/mini-rv.resc
+    exec renode --disable-gui --console renode/mini-rv.resc
     ;;
 
   04|04-sifive-fe310)
     prepare_workdir 04-sifive-fe310
     make
-    exec renode --plain --disable-gui --console renode/hifive1.resc
+    exec renode --disable-gui --console renode/hifive1.resc
     ;;
 
   05|05-fe310-interrupts)
     prepare_workdir 05-fe310-interrupts
     make
-    exec renode --plain --disable-gui --console renode/timer-irq.resc
+    exec renode --disable-gui --console renode/timer-irq.resc
     ;;
 
   06|06-robot-testing)
@@ -94,17 +94,17 @@ case "$cmd" in
   07|07-custom-peripheral)
     prepare_workdir 07-custom-peripheral
     make
-    exec renode --plain --disable-gui --console renode/custom-timer.resc
+    exec renode --disable-gui --console renode/custom-timer.resc
     ;;
 
   00|00-Demo|demo|Demo)
     prepare_workdir 00-Demo
     make
-    exec renode --plain --disable-gui --console bare_demo.resc
+    exec renode --disable-gui --console bare_demo.resc
     ;;
 
   monitor|repl)
-    exec renode --plain --disable-gui --console
+    exec renode --disable-gui --console
     ;;
 
   shell)
