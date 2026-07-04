@@ -89,6 +89,7 @@ mach create
 machine LoadPlatformDescription @smarttimer_arm.repl
 sysbus.cpu LogFunctionNames true     # log every C function entry
 sysbus LogAllPeripheralsAccess true  # log bus accesses
+logFile @/tmp/bare_demo.log
 sysbus LoadELF @sw/bare.elf
 ```
 
@@ -180,7 +181,7 @@ arm-none-eabi-readelf -l sw/bare.elf      # program headers (load segments)
 arm-none-eabi-readelf -S sw/bare.elf      # section headers
 ```
 
-> See `BUILD_INTERNALS.pdf` in this folder for a deeper explanation of
+> See `BUILD_INTERNALS.md` in the ./doc folder for a deeper explanation of
 > what an ELF file is and what each of these parts contains.
 
 ## 4. What to observe
@@ -192,6 +193,8 @@ then the core parks in `wfi`. Two ways to see it work:
 and `LogFunctionNames` is on, you'll see entries for `_start`, `main`,
 `mmio_write32`, `mmio_read32` scroll by — the program executing
 instruction-by-instruction through the model.
+
+The script also logs traces in /tmp/bare_demo.log.
 
 **Read the registers from the monitor:** the values the firmware wrote
 are still in the SmartTimer memory window. After `start`:
@@ -222,7 +225,6 @@ sysbus ReadDoubleWord  0x70000004      # -> 0x1234
 | `sysbus.cpu LogFunctionNames true` | Toggle function-entry logging. |
 | `sysbus ReadDoubleWord 0x70000000` | Read a SmartTimer register. |
 | `sysbus WriteDoubleWord 0x70000000 0x3` | Write a SmartTimer register. |
-| `machine Reset` | Reset the CPU back to `_start`. |
 | `quit` | Exit Renode. |
 
 ## 6. Next step
