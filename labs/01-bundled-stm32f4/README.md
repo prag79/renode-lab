@@ -100,7 +100,7 @@ The bundled `.resc` did three things behind the scenes:
 1. `mach create "STM32F4_Discovery"` — created a virtual machine.
 2. `machine LoadPlatformDescription @platforms/boards/stm32f4_discovery-kit.repl`
    — instantiated CPU, RAM, USARTs, GPIOs, timers, etc.
-3. `sysbus LoadELF @...stm32f4discovery-demo.elf` followed by
+3. `sysbus LoadELF @...stm32f4discovery-demo.elf` (elf is downloaded from antmicro online repo link) followed by
    `start` — loaded the firmware and started the simulated CPU.
 
 You can re-run any of these by hand from the monitor; they are
@@ -164,7 +164,7 @@ Even without the GUI analyzer you can capture UART output:
 ```text
 pause
 sysbus.uart4 CreateFileBackend @/tmp/uart4.log true
-start
+
 ```
 
 Wait a few seconds, then in **another terminal** in the
@@ -172,6 +172,12 @@ Codespace:
 
 ```bash
 tail -f /tmp/uart4.log
+```
+Then in the renode monitor 
+```text
+machine Reset
+start
+
 ```
 
 You should see Contiki's boot banner (something like
