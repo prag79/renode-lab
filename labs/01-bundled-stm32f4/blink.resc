@@ -6,14 +6,22 @@
 #   pause
 #   include @blink.resc
 #
-# Implementation note: Renode's .resc tokenizer does NOT accept
-# multi-line double-quoted strings. Inlining a `python "..."`
-# block with real newlines fails with:
-#   Could not tokenize here:
-#     python "
-#            ^
-# So we keep the Python loop in blink.py and load it here with a
-# single-line execfile call. `lab 01` cd's into this directory
-# before starting Renode, so the relative path 'blink.py' resolves.
+# Implementation notes:
+#
+# 1. Renode's .resc tokenizer does NOT accept multi-line double-
+#    quoted strings. Inlining a `python "..."` block with real
+#    newlines fails with:
+#        Could not tokenize here:
+#          python "
+#                 ^
+#    So the actual loop lives in blink.py and we load it here.
+#
+# 2. IronPython's execfile() uses Python's process CWD, which is
+#    NOT reliably the lab directory when Renode is launched via
+#    `lab 01` (the wrapper script's `cd` doesn't always survive
+#    into Renode's embedded IronPython context). Using os.path.
+#    expanduser('~/work/01-bundled-stm32f4/blink.py') resolves the
+#    absolute path from the student's home directory instead, so
+#    the include works regardless of CWD.
 
-python "execfile('blink.py')"
+python "import os; execfile(os.path.expanduser('~/work/01-bundled-stm32f4/blink.py'))"
