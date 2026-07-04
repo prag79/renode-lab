@@ -19,6 +19,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         xvfb x11vnc fluxbox novnc websockify xterm x11-utils \
  && rm -rf /var/lib/apt/lists/*
 
+# GitHub CLI (not in the Ubuntu 22.04 archive). Students need it to
+# `gh repo fork --remote --remote-name=origin` from inside the codespace
+# so their edits can be pushed back to their own fork.
+RUN mkdir -p -m 755 /etc/apt/keyrings \
+ && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+ && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+ && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    > /etc/apt/sources.list.d/github-cli.list \
+ && apt-get update && apt-get install -y --no-install-recommends gh \
+ && rm -rf /var/lib/apt/lists/*
+
 # Renode (portable tarball; works on amd64 and arm64).
 ARG RENODE_VERSION=1.15.3
 RUN ARCH="$(dpkg --print-architecture)" && \

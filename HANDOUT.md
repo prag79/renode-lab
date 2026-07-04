@@ -237,6 +237,25 @@ git remote -v       # sanity check:
                     #   upstream  https://github.com/prag79/renode-lab.git
 ```
 
+> **If `gh: command not found`** — your Codespace is running an
+> older image that doesn't have the GitHub CLI baked in. Either
+> **rebuild the Codespace** (palette → `Codespaces: Rebuild
+> Container`) to pull the latest image, which includes `gh`, or
+> install it by hand:
+>
+> ```bash
+> sudo mkdir -p -m 755 /etc/apt/keyrings \
+>  && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+>     | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+>  && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+>  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+>     | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+>  && sudo apt-get update && sudo apt-get install -y gh
+> ```
+>
+> The hand-install survives Codespace stop/start but is wiped on
+> rebuild — prefer rebuilding if you can.
+
 **2. (Recommended) work on a branch, not on `main`.** This keeps
 your tinkering separate from upstream so future `git pull
 upstream main` is conflict-free:
