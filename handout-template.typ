@@ -34,18 +34,26 @@ $header-includes$
 $endfor$
 
 // Title block (rendered inline, before the body, on the same page).
+// Designed as a compact banner: eyebrow text, big title, subtitle,
+// then a thick accent rule. No full-page cover -- the intro
+// paragraph follows immediately on the same page.
 $if(title)$
-  #set text(size: 10pt, fill: rgb("#2d3748"), weight: "bold", tracking: 0.8pt)
-  STUDENT HANDOUT • SETUP & QUICK REFERENCE \
-  #v(0.4em)
-  #text(size: 22pt, weight: "bold", fill: rgb("#1a202c"))[$title$] \
+#block(above: 0pt, below: 0.8em)[
+  #set text(size: 9pt, fill: muted, weight: "bold", tracking: 2pt)
+  STUDENT HANDOUT
+  #h(0.5em)
+  #text(fill: accent)[•]
+  #h(0.5em)
+  SETUP & QUICK REFERENCE
+  #v(0.5em)
+  #text(size: 24pt, weight: "bold", fill: ink)[$title$]
   $if(subtitle)$
-  #v(0.3em)
-  #text(size: 11pt, fill: rgb("#4a5568"), tracking: 0pt)[$subtitle$] \
+  #v(0.2em)
+  #text(size: 11pt, fill: ink-soft)[$subtitle$]
   $endif$
-  #v(1.2em)
-  #line(length: 100%, stroke: 0.6pt + rgb("#2f3b52"))
-  #v(0.6em)
+  #v(0.8em)
+  #block(height: 3pt, width: 100%, fill: accent)
+]
 $endif$
 
 $for(include-before)$
