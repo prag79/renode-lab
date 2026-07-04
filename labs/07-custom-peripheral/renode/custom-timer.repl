@@ -4,7 +4,7 @@
 // so no PLIC is needed for this single source.
 
 cpu: CPU.RiscV64 @ sysbus
-    cpuType: "rv64imac"
+    cpuType: "rv64imac_zicsr_zifencei"
     privilegeArchitecture: PrivilegeArchitecture.Priv1_10
     timeProvider: empty
 

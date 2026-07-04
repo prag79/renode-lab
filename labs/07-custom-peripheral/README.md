@@ -110,6 +110,12 @@ mytimer: Timers.SimpleTimer @ sysbus 0x10001000
     IRQ -> cpu@11
 ```
 
+The CPU is declared as `rv64imac_zicsr_zifencei` (not bare
+`rv64imac`) because the firmware programs CSRs (`mtvec`, `mie`,
+`mstatus`) and uses `wfi`. Without the `Zicsr` extension Renode
+logs *RISC-V Zicsr instruction set is not enabled for this CPU*
+and the interrupt path never comes up.
+
 `Timers.SimpleTimer` is the type Renode just compiled from our `.cs`
 (its namespace is `Antmicro.Renode.Peripherals.Timers`). `IRQ ->
 cpu@11` connects the peripheral's interrupt line straight to the
