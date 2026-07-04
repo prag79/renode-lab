@@ -6,11 +6,21 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LAB_HOME=/labs
 
 # Renode runtime + cross toolchains + headless desktop bits.
+#
+# gtk-sharp2 / libgtk2.0-cil / libgdiplus are the C# bindings + graphics
+# runtime Mono needs to actually use GTK. Without them Renode starts
+# fine in headless mode but any GUI analyzer (`showAnalyzer ... LEDAnalyzer`,
+# `showAnalyzer sysbus.uart4`, GPIO widgets, ...) fails with:
+#   "Received 'No backend found for ...' error while initializing analyzer"
+# even when LAB_GUI=1 and Xvfb/x11vnc are alive. libgtk2.0-0 alone is
+# the native library and is *not* enough - the CIL bindings are separate.
+#
 # IMPORTANT: never put `# comments` mid-line inside a `\`-continued RUN.
 # A `#` consumes the trailing `\` and silently breaks line continuation;
 # the next "line" then runs as a separate shell command.
 RUN apt-get update && apt-get install -y --no-install-recommends \
         mono-complete libgtk2.0-0 screen policykit-1 \
+        gtk-sharp2 libgtk2.0-cil libgdiplus \
         gcc-riscv64-unknown-elf  picolibc-riscv64-unknown-elf  binutils-riscv64-unknown-elf \
         gcc-arm-none-eabi        libnewlib-arm-none-eabi      binutils-arm-none-eabi \
         gcc-riscv64-linux-gnu    binutils-riscv64-linux-gnu \
