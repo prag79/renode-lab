@@ -21,19 +21,7 @@ Mirrors `/labs/07-custom-peripheral/` into your work tree, runs
 `renode/custom-timer.resc`. That script **compiles the C# peripheral**
 (`i @peripherals/SimpleTimer.cs`) before loading the platform.
 
-**Where to read UART output (important):**
-
-Renode does **not** echo UART traffic to the monitor console. In the
-default headless mode (`LAB_GUI=0`) nothing appears in noVNC either.
-The bundled `.resc` always attaches a file backend, so open a **second
-terminal** and run:
-
-```bash
-tail -f /tmp/uart.log
-```
-
-You should see (first tick ~1 s after `start` — the timer period is
-1,000,000 ticks at 1 MHz):
+In the **`uart` analyzer** (noVNC tab, port 6080) you'll see:
 
 ```
 *** Custom peripheral lab: SimpleTimer IP ***
@@ -43,64 +31,39 @@ tick from my custom timer IP
 ...
 ```
 
+In the **Renode monitor** (same terminal as `lab 07`) you'll also see
+INFO lines from the C# model every ~1 s:
+
+```
+[INFO] mytimer: Timer interrupt: period elapsed, STATUS.PENDING=1
+[INFO] mytimer: Timer interrupt: asserting IRQ line -> cpu@11
+[INFO] mytimer: Timer interrupt: IRQ deasserted (acknowledged or disabled)
+```
+
+Those three lines are the hardware side of the same tick — period
+elapsed, IRQ raised, firmware acked via `STATUS` write-1-to-clear.
+
 Each `tick` is your C# peripheral firing its `LimitReached` event,
 raising the IRQ line you wired to the CPU, and the firmware's trap
 handler acknowledging it.
 
-**Optional — noVNC GUI window (`LAB_GUI=1` only):**
+**Seeing UART output:**
 
-The `.resc` calls `showAnalyzer sysbus.uart` only when
-`LAB_GUI=1`. Switch modes, then relaunch:
+- **Headless (default, `LAB_GUI=0`):** at the monitor prompt after
+  `start`, attach a file backend and tail it from another terminal:
 
-```bash
-quit
-export LAB_GUI=1
-entrypoint.sh true
-lab 07
-```
+  ```text
+  sysbus.uart CreateFileBackend @/tmp/uart.log true
+  ```
 
-Open forwarded port **6080** (`/vnc.html`) and look for the **UART
-analyzer window** on the virtual desktop (not the VS Code terminal).
-See lab 01 §2 for details. If the widget still does not appear, use
-`tail -f /tmp/uart.log` — that path always works.
+  ```bash
+  tail -f /tmp/uart.log
+  ```
 
-**Troubleshooting — no ticks at all (even in `/tmp/uart.log`):**
-
-1. Confirm your working copy has the Zicsr CPU fix — the `.repl` must
-   say `rv64imac_zicsr_zifencei`, not bare `rv64imac`:
-
-   ```bash
-   grep cpuType ~/work/07-custom-peripheral/renode/custom-timer.repl
-   ```
-
-   If stale, refresh from the repo:
-
-   ```bash
-   cd /workspaces/renode-lab && git pull
-   cp /workspaces/renode-lab/labs/07-custom-peripheral/renode/custom-timer.{repl,resc} \
-      ~/work/07-custom-peripheral/renode/
-   lab 07
-   ```
-
-2. At the monitor prompt, verify the timer is counting:
-
-   ```text
-   logLevel -1 sysbus.mytimer
-   sysbus ReadDoubleWord 0x10001008
-   ```
-
-   Re-run the read a few times — `COUNTER` should increase. You should
-   also see `[NOISY] mytimer: Period elapsed; raising IRQ` about once
-   per second.
-
-3. Check the CPU took the interrupt:
-
-   ```text
-   sysbus.cpu MCAUSE
-   ```
-
-   After a tick, this should show `0x800000000000000b` (interrupt +
-   external code 11).
+- **GUI mode (`LAB_GUI=1`):** the bundled script runs
+  `showAnalyzer sysbus.uart` (note the `sysbus.` prefix — bare
+  `uart` fails with *Peripheral not found*). Open the noVNC tab on
+  port **6080** (`/vnc.html`). See lab 01 §2 for switching modes.
 
 ## 2. The peripheral (`peripherals/SimpleTimer.cs`)
 
@@ -213,8 +176,8 @@ Your peripheral is a first-class citizen in the monitor.
 | `sysbus.mytimer` | Inspect the object; tab-complete its methods/properties. |
 | `sysbus ReadDoubleWord 0x10001008` | Read the live `COUNTER` register. |
 | `sysbus ReadDoubleWord 0x1000100C` | Read `STATUS`; bit 0 = pending. |
-| `logLevel -1 sysbus.mytimer` | Show the `Noisy` logs from `OnLimitReached`/`UpdateInterrupt`. |
-| `sysbus.cpu MCAUSE` | After a tick: `0x800...00B` (interrupt + external code 11). |
+| `logLevel -1 sysbus.mytimer` | Extra `[NOISY]` detail beyond the default INFO interrupt lines. |
+| `sysbus.cpu MCAUSE` | Read **during** a trap (pause right after a tick, when PC ≠ `0x80000136`). Expect `0x800000000000000B` (external irq 11). Idle in `wfi` → `0x0`. |
 | `emulation RunFor "2.5"` | Advance 2.5 s of sim-time; expect ~2 ticks. |
 | `sysbus WriteDoubleWord 0x10001000 0x0` | Disable the timer from the monitor; ticks stop. |
 | `quit` | Exit Renode. |

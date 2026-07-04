@@ -287,19 +287,12 @@ namespace Antmicro.Renode.Peripherals.Timers
         /// touch peripheral state without extra locking.
         private void OnLimitReached()
         {
-            /// @brief Diagnostic breadcrumb, visible under `logLevel -1
-            ///        sysbus.simpletimer`. Level `Noisy` is filtered out
-            ///        by default.
-            this.Log(LogLevel.Noisy, "Period elapsed; raising IRQ");
+            /// @brief Visible at default monitor log level (INFO). Students
+            ///        should see this in the Renode console every ~1 s when
+            ///        the timer fires, alongside the UART line from firmware.
+            this.Log(LogLevel.Info, "Timer interrupt: period elapsed, STATUS.PENDING=1");
 
-            /// @brief Set STATUS.PENDING. Since the register is
-            ///        WriteOneToClear, only the CPU (via a bus write)
-            ///        can clear it — model behaviour matches typical
-            ///        MCU peripherals.
             pendingFlag.Value = true;
-
-            /// @brief Re-drive the IRQ line based on the new PENDING
-            ///        state and the current IRQ_ENABLE mask.
             UpdateInterrupt();
         }
 
@@ -321,13 +314,19 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             var irq = pendingFlag.Value && irqEnableFlag.Value;
 
-            /// @brief Trace every state transition for debugging.
-            this.Log(LogLevel.Noisy, "Setting IRQ to {0}", irq);
+            if (irq)
+            {
+                this.Log(LogLevel.Info, "Timer interrupt: asserting IRQ line -> cpu@11");
+            }
+            else if (pendingFlag.Value)
+            {
+                this.Log(LogLevel.Info, "Timer interrupt: PENDING set but IRQ masked (IRQ_ENABLE=0)");
+            }
+            else
+            {
+                this.Log(LogLevel.Info, "Timer interrupt: IRQ deasserted (acknowledged or disabled)");
+            }
 
-            /// @brief `Set(bool)` is the level-oriented API on `GPIO`;
-            ///        `true` drives the line high, `false` low. The
-            ///        interrupt controller on the other end handles
-            ///        edge detection.
             IRQ.Set(irq);
         }
 
