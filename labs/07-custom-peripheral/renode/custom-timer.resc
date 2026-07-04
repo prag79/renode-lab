@@ -10,8 +10,13 @@ i @peripherals/SimpleTimer.cs
 
 machine LoadPlatformDescription @renode/custom-timer.repl
 sysbus LoadELF @firmware.elf
-# Full sysbus path required — bare `uart` is not resolved here.
-# Headless fallback: `sysbus.uart CreateFileBackend @/tmp/uart.log true`
-# then `tail -f /tmp/uart.log` in another terminal.
-showAnalyzer sysbus.uart
+
+# UART output does NOT appear in the Renode monitor console or in noVNC
+# unless you attach a backend. Always log to a file (works headless):
+sysbus.uart CreateFileBackend @/tmp/uart.log true
+
+# Pop the GUI analyzer into the noVNC desktop only when LAB_GUI=1.
+# In default headless mode (LAB_GUI=0) showAnalyzer is skipped.
+python "import os; monitor.Parse('showAnalyzer sysbus.uart') if os.environ.get('LAB_GUI','0')=='1' else 0"
+
 start
