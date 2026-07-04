@@ -1,2 +1,8 @@
 # macOS
 .DS_Store
+.typ
+
+# Typst is our PDF engine via pandoc; .typ files are sources, not
+# build artifacts. Keep them tracked.
+!handout-style.typ
+!labs/**/table-style.typ
