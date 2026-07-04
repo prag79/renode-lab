@@ -17,8 +17,16 @@ invocation):
 
 ```
 cd ~/work/01-bundled-stm32f4
-renode --plain --disable-gui --console stm32f4.resc
+renode $RENODE_GUI_FLAGS --console stm32f4.resc
 ```
+
+`$RENODE_GUI_FLAGS` is empty when the environment variable
+`LAB_GUI=1` (GUI mode — noVNC desktop on port 6080 is up and
+Renode analyzer windows can render into it) and `--disable-gui`
+otherwise (headless console mode, default). To flip modes for a
+Codespaces session, `export LAB_GUI=1` (or `=0`) before running
+`lab NN` and re-run `entrypoint.sh` if needed — see section 6c
+below for the LED analyzer example.
 
 `stm32f4.resc` simply `include`s the bundled
 `scripts/single-node/stm32f4_discovery.resc` shipped inside
@@ -176,7 +184,7 @@ for usage.
 | `sysbus.gpioPortD.UserLED State` | Read the current LED state (`True`/`False`). |
 | `sysbus.gpioPortD` | Inspect the GPIO port object; tab-complete to see its methods. |
 | `logLevel 0 sysbus.uart4` | Verbose-log every read/write to the Contiki console UART. Set back with `logLevel 3 sysbus.uart4`. |
-| `showAnalyzer sysbus.uart4` | Pop the UART analyzer window (only visible in the noVNC tab). |
+| `showAnalyzer sysbus.uart4` | Pop the UART analyzer window into noVNC. **Requires `LAB_GUI=1`** — otherwise you get `No backend found`. See §6c. |
 | `emulation RunFor "0.5"` | Run for exactly 500 ms of virtual time, then auto-pause. Cycle-accurate determinism. |
 | `machine StatisticalProfiler` | Start a sampling profiler; dump with `WriteToFile`. |
 | `quit` | Exit Renode. |
@@ -226,39 +234,69 @@ for usage.
    ### b) Live blink loop you can watch (works without noVNC)
 
    Toggle 10 times with a 200 ms simulated delay between each
-   transition:
+   transition. The Renode monitor is line-oriented, so we put the
+   Python loop in a small `.resc` include file (the `.resc`
+   parser supports multi-line double-quoted strings; typing `\n`
+   directly at the monitor prompt does **not** work).
+
+   The lab ships a ready-made [`blink.resc`](blink.resc) helper
+   next to `stm32f4.resc`, so at the `(STM32F4_Discovery)` prompt
+   (machine paused):
 
    ```text
-   python "for i in range(10): \
-     monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x00001000'); \
-     monitor.Parse('emulation RunFor \"0.2\"'); \
-     monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x10000000'); \
-     monitor.Parse('emulation RunFor \"0.2\"'); \
-     monitor.Parse('sysbus.gpioPortD.UserLED State')"
+   pause
+   include @blink.resc
    ```
 
    You'll see `True / False / True / False …` scroll past — that
    is the LED blinking at 2.5 Hz of *simulated* time. (Wall-clock
    speed depends on how fast Renode is running; the **virtual**
-   period is exactly 400 ms per blink.)
+   period is exactly 400 ms per blink.) If you don't want to
+   create the file, just unroll the loop by pasting the six
+   toggle/`RunFor`/`State` lines directly a few times.
 
-   If the multi-line `python` is awkward in your terminal, paste
-   it as a single line — the `\` continuations are just for
-   readability.
+   ### c) Visual blink in noVNC (port 6080) — requires GUI mode
 
-   ### c) Visual blink in noVNC (port 6080)
-
-   If the noVNC desktop is up, pop a dedicated LED widget:
+   The `LEDAnalyzer` is a GUI plugin. It only registers when
+   Renode is started **without** `--disable-gui`. In the default
+   headless mode (which is what `lab 01` uses) you will get:
 
    ```text
    showAnalyzer sysbus.gpioPortD.UserLED Antmicro.Renode.Analyzers.LEDAnalyzer
+   Received 'No backend found for sysbus.gpioPortD.UserLED' error
+   while initializing analyzer for: sysbus.gpioPortD.UserLED.
+   Are you missing a required plugin?
    ```
 
-   A small LED-shaped square appears in the noVNC tab. Run the
-   blink loop from (b) and the square turns on/off in lockstep
-   with the `True`/`False` you see in the monitor. This is the
-   closest analog to "watching a real Discovery board on your
-   desk".
+   That's expected — the plugin isn't loaded because there's no
+   GUI. To enable it, switch to GUI mode:
+
+   ```bash
+   quit                      # exit the current lab 01
+   export LAB_GUI=1
+   entrypoint.sh true        # brings up Xvfb, fluxbox, x11vnc,
+                             # websockify on port 6080 if not yet up
+   lab 01                    # relaunches Renode with GUI enabled
+   ```
+
+   Then at the monitor prompt:
+
+   ```text
+   start
+   showAnalyzer sysbus.gpioPortD.UserLED Antmicro.Renode.Analyzers.LEDAnalyzer
+   ```
+
+   A small LED-shaped square appears in the noVNC tab (forwarded
+   port **6080**, path `/vnc.html`). Run the blink loop from (b)
+   and the square turns on/off in lockstep with the `True`/`False`
+   you see in the monitor. This is the closest analog to
+   "watching a real Discovery board on your desk".
+
+   To go back to console-only operation for later labs:
+
+   ```bash
+   export LAB_GUI=0
+   ```
 
    ### d) Trace every state change to the console
 

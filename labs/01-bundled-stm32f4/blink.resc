@@ -1,0 +1,18 @@
+# Toggle the STM32F4 Discovery user LED (PD12) 10 times with a
+# 200 ms simulated delay between each transition, printing the
+# LED state after each write. Load with `include @blink.resc`
+# from the Renode monitor. Machine must be paused first.
+#
+# GPIOD BSRR = 0x40020C18
+#   low  16 bits = SET   (write 1 -> pin goes high)
+#   high 16 bits = RESET (write 1 -> pin goes low)
+# PD12 => bit 12 in the low half, bit 28 in the high half.
+
+python "
+for i in range(10):
+    monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x00001000')
+    monitor.Parse('emulation RunFor \"0.2\"')
+    monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x10000000')
+    monitor.Parse('emulation RunFor \"0.2\"')
+    monitor.Parse('sysbus.gpioPortD.UserLED State')
+"
