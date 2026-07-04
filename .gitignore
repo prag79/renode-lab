@@ -5,4 +5,5 @@
 # Typst is our PDF engine via pandoc; .typ files are sources, not
 # build artifacts. Keep them tracked.
 !handout-style.typ
+!handout-template.typ
 !labs/**/table-style.typ
