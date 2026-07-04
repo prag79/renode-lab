@@ -50,10 +50,15 @@ using Antmicro.Renode.Peripherals;
 ///        word-granular memory-mapped I/O.
 using Antmicro.Renode.Peripherals.Bus;
 
-/// @brief `LimitTimer` + `WorkMode` — the reusable Renode primitive
-///        that owns the virtual clock and fires a callback when the
-///        count reaches its limit.
+/// @brief `LimitTimer` — the reusable Renode primitive that owns the
+///        virtual clock and fires a callback when the count reaches
+///        its limit.
 using Antmicro.Renode.Peripherals.Timers;
+
+/// @brief `WorkMode` (`Periodic`, `OneShot`, ...) lives here, not in
+///        `Peripherals.Timers`. Omitting this `using` yields CS0103
+///        when Renode compiles the file via `i @peripherals/...`.
+using Antmicro.Renode.Time;
 
 /// @namespace Antmicro.Renode.Peripherals.Timers
 /// @brief Home namespace for timer-family peripherals. Placing the
