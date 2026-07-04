@@ -21,12 +21,9 @@ renode $RENODE_GUI_FLAGS --console stm32f4.resc
 ```
 
 `$RENODE_GUI_FLAGS` is empty when the environment variable
-`LAB_GUI=1` (GUI mode — noVNC desktop on port 6080 is up and
-Renode analyzer windows can render into it) and `--disable-gui`
-otherwise (headless console mode, default). To flip modes for a
-Codespaces session, `export LAB_GUI=1` (or `=0`) before running
-`lab NN` and re-run `entrypoint.sh` if needed — see section 6c
-below for the LED analyzer example.
+`LAB_GUI=1` and `--disable-gui` otherwise (headless console
+mode is the default). See section 2 below for what each mode
+gives you and how to switch.
 
 `stm32f4.resc` simply `include`s the bundled
 `scripts/single-node/stm32f4_discovery.resc` shipped inside
@@ -40,12 +37,13 @@ seconds you will see:
 
 - A `(STM32F4_Discovery)` prompt — the **Renode monitor** is now
   waiting for your commands.
-- An analyzer window for `sysbus.uart4` opens in the noVNC
-  desktop (port **6080**, path `/vnc.html`). The Contiki console
-  is wired to **`uart4`** — *not* `usart2`. (`usart2` exists in
-  the platform but the demo firmware does not use it, so it
-  stays silent. If you attach a backend to `usart2` you'll see
-  nothing — section 4 covers the right command.)
+- In GUI mode (`LAB_GUI=1`), an analyzer window for
+  `sysbus.uart4` may appear in the noVNC desktop (port **6080**,
+  path `/vnc.html`). The Contiki console is wired to **`uart4`**
+  — *not* `usart2`. (`usart2` exists in the platform but the
+  demo firmware does not use it, so it stays silent. If you
+  attach a backend to `usart2` you'll see nothing — section 5
+  covers the right command.)
 - The script does not call `start`, so the CPU may be paused at
   the first prompt. If `sysbus.cpu PC` returns the same value
   twice in a row, type `start`. (`lab 01` on the current image
@@ -55,7 +53,47 @@ If `lab 01` fails, nothing else in this lab will work either. Stop
 and fix the environment first (see the troubleshooting table in
 the top-level [`README.md`](../../README.md)).
 
-## 2. What just happened
+## 2. Headless vs GUI mode
+
+Renode can run in two modes on the Codespace. Pick one and stick
+with it for the lab session — mixing is fine but requires a
+Renode restart.
+
+| Mode | Env var | What you get | Trade-off |
+|---|---|---|---|
+| **Headless** (default) | `LAB_GUI=0` or unset | Monitor prompt in your terminal, all output as text. UART logged via `CreateFileBackend` / socket. GPIO / LED observed via `logLevel -1` or direct `State` reads. | No GUI dependency, works in any terminal, deterministic paste-friendly output for automation and grading. |
+| **GUI in noVNC** | `LAB_GUI=1` | Monitor in your terminal **plus** Renode's GUI analyzer windows (UART terminal window, GPIO widgets where supported) rendered into the Xvfb desktop, accessible via the noVNC tab on forwarded port **6080**, path `/vnc.html`. | Requires `entrypoint.sh` to have brought up Xvfb+fluxbox+x11vnc+websockify. Not all peripheral analyzers ship with every Renode build — if `showAnalyzer …` returns `No backend found for …`, that specific plugin isn't available in this image and you must fall back to the headless method. |
+
+To switch to GUI mode from a running Codespace:
+
+```bash
+quit                      # exit any running lab NN
+export LAB_GUI=1
+entrypoint.sh true        # brings up Xvfb, fluxbox, x11vnc,
+                          # websockify on port 6080 if not yet up
+pgrep -af 'Xvfb|x11vnc'   # sanity check: should see both
+lab 01                    # relaunches Renode without --disable-gui
+```
+
+Then open the noVNC tab (Ports panel → 6080 → globe icon → append
+`/vnc.html` if needed). The UART analyzer window is the one
+plugin known to work reliably; you'll see Contiki's boot log
+scrolling there instead of (or in addition to) your terminal.
+
+To go back to headless for later labs:
+
+```bash
+quit
+export LAB_GUI=0
+lab 01                    # or whichever lab
+```
+
+**Recommendation for this lab (and for graded work):** stay in
+headless mode. Every experiment in sections 3–6 works there and
+produces clean, copy-pasteable output. GUI mode is a convenience,
+not a requirement.
+
+## 3. What just happened
 
 The bundled `.resc` did three things behind the scenes:
 
@@ -68,7 +106,7 @@ The bundled `.resc` did three things behind the scenes:
 You can re-run any of these by hand from the monitor; they are
 the building blocks you'll use in labs 02 and 03.
 
-## 3. First demo: watch the firmware run
+## 4. First demo: watch the firmware run
 
 > **Always type `start` first.** The bundled `stm32f4_discovery.resc`
 > loads the ELF and stops — it never calls `start` itself. Until
@@ -113,7 +151,7 @@ start
 Pause the machine, single-step one instruction, observe PC
 advanced, then resume. This is the bare minimum debug loop.
 
-## 4. See the UART traffic from the monitor
+## 5. See the UART traffic from the monitor
 
 > **Important:** the Contiki console on this board is on
 > **`uart4`**, not `usart2`. Attaching a backend to `usart2`
@@ -160,7 +198,7 @@ script does, via `showAnalyzer sysbus.uart4`) you may see a
 warning about a second backend — that's harmless for read-only
 inspection.
 
-## 5. Useful monitor commands to try
+## 6. Useful monitor commands to try
 
 A short menu of things worth experimenting with on this board.
 Type `help` at any time for the full list, or `help <command>`
@@ -184,12 +222,12 @@ for usage.
 | `sysbus.gpioPortD.UserLED State` | Read the current LED state (`True`/`False`). |
 | `sysbus.gpioPortD` | Inspect the GPIO port object; tab-complete to see its methods. |
 | `logLevel 0 sysbus.uart4` | Verbose-log every read/write to the Contiki console UART. Set back with `logLevel 3 sysbus.uart4`. |
-| `showAnalyzer sysbus.uart4` | Pop the UART analyzer window into noVNC. **Requires `LAB_GUI=1`** — otherwise you get `No backend found`. See §6c. |
+| `showAnalyzer sysbus.uart4` | Pop the UART analyzer window into noVNC. **Requires `LAB_GUI=1`** — otherwise you get `No backend found`. See "Headless vs GUI mode" below. |
 | `emulation RunFor "0.5"` | Run for exactly 500 ms of virtual time, then auto-pause. Cycle-accurate determinism. |
 | `machine StatisticalProfiler` | Start a sampling profiler; dump with `WriteToFile`. |
 | `quit` | Exit Renode. |
 
-## 6. Mini-experiments (try at least one)
+## 7. Mini-experiments (try at least one)
 
 1. **Blink an LED from the monitor.** The board model wires
    `UserLED` to `gpioPortD` pin 12 (PD12 — the green LED on a
@@ -215,7 +253,7 @@ for usage.
 
    So the absolute address of GPIOD's BSRR is `0x40020C18`.
 
-   ### a) One-shot toggle + read-back (works without noVNC)
+   ### a) One-shot toggle + read-back
 
    The cleanest proof the LED responded:
 
@@ -231,7 +269,7 @@ for usage.
    blinking, just as observed by the model. Same physical event,
    no GUI required.
 
-   ### b) Live blink loop you can watch (works without noVNC)
+   ### b) Live blink loop you can watch
 
    Toggle 10 times with a 200 ms simulated delay between each
    transition. Two files ship with the lab:
@@ -264,50 +302,7 @@ for usage.
    at the monitor prompt manually — no Python, no loop, no
    escaping.
 
-   ### c) Visual blink in noVNC (port 6080) — requires GUI mode
-
-   The `LEDAnalyzer` is a GUI plugin. It only registers when
-   Renode is started **without** `--disable-gui`. In the default
-   headless mode (which is what `lab 01` uses) you will get:
-
-   ```text
-   showAnalyzer sysbus.gpioPortD.UserLED Antmicro.Renode.Analyzers.LEDAnalyzer
-   Received 'No backend found for sysbus.gpioPortD.UserLED' error
-   while initializing analyzer for: sysbus.gpioPortD.UserLED.
-   Are you missing a required plugin?
-   ```
-
-   That's expected — the plugin isn't loaded because there's no
-   GUI. To enable it, switch to GUI mode:
-
-   ```bash
-   quit                      # exit the current lab 01
-   export LAB_GUI=1
-   entrypoint.sh true        # brings up Xvfb, fluxbox, x11vnc,
-                             # websockify on port 6080 if not yet up
-   lab 01                    # relaunches Renode with GUI enabled
-   ```
-
-   Then at the monitor prompt:
-
-   ```text
-   start
-   showAnalyzer sysbus.gpioPortD.UserLED Antmicro.Renode.Analyzers.LEDAnalyzer
-   ```
-
-   A small LED-shaped square appears in the noVNC tab (forwarded
-   port **6080**, path `/vnc.html`). Run the blink loop from (b)
-   and the square turns on/off in lockstep with the `True`/`False`
-   you see in the monitor. This is the closest analog to
-   "watching a real Discovery board on your desk".
-
-   To go back to console-only operation for later labs:
-
-   ```bash
-   export LAB_GUI=0
-   ```
-
-   ### d) Trace every state change to the console
+   ### c) Trace every state change to the console
 
    Have Renode log a line every time `UserLED` changes state, no
    matter who flipped it (your `WriteDoubleWord`, the firmware,
@@ -361,7 +356,7 @@ for usage.
    The firmware re-runs from the ELF entry point; the Contiki
    boot banner reappears in your `uart4` log / telnet session.
 
-## 7. Exit cleanly
+## 8. Exit cleanly
 
 ```text
 quit
