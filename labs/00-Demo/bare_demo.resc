@@ -15,6 +15,7 @@ logLevel 0
 sysbus.cpu LogFunctionNames true
 sysbus LogAllPeripheralsAccess true
 #sysbus LogPeripheralAccess sysbus.smarttimer true
+logFile @/tmp/bare_demo.log
 
 # Load and run the bare-metal ELF
 sysbus LoadELF @sw/bare.elf
