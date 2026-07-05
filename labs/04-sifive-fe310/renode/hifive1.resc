@@ -4,5 +4,5 @@
 mach create "hifive1"
 machine LoadPlatformDescription @renode/hifive1.repl
 sysbus LoadELF @blink.elf
-showAnalyzer uart0
+showAnalyzer sysbus.uart0
 start

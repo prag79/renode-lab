@@ -61,7 +61,7 @@ The `.resc` script is short enough to read in one screen — open
 mach create "mini-rv"
 machine LoadPlatformDescription @renode/mini-rv.repl
 sysbus LoadELF @hello.elf
-showAnalyzer uart
+showAnalyzer sysbus.uart
 start
 ```
 
