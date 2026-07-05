@@ -13,7 +13,7 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Eight exercises baked into the image under `/labs/` (read-only). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
+- Nine exercises baked into the image under `/labs/` (read-only) — eight core plus one optional multi-node capstone. On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
@@ -27,6 +27,7 @@ lab 04                  # bare-metal on a SiFive FE310 (HiFive1): UART + GPIO bl
 lab 05                  # FE310 timer interrupts: blink from a CLINT ISR
 lab 06                  # headless regression testing with the Robot framework
 lab 07                  # model your own peripheral (custom C# timer IP)
+lab 08                  # (optional) multi-node IoT network: 3x FE310 over a shared UART bus
 lab monitor             # plain Renode interactive monitor
 ```
 
@@ -111,6 +112,7 @@ gh pr create --repo prag79/renode-lab \
 | `lab 05` | RISC-V interrupts: drive the LED from a CLINT machine-timer ISR | [`labs/05-fe310-interrupts/`](labs/05-fe310-interrupts/) |
 | `lab 06` | Headless CI: assert firmware behaviour with a Renode Robot suite | [`labs/06-robot-testing/`](labs/06-robot-testing/) |
 | `lab 07` | Model your own peripheral in C#: a memory-mapped timer IP that interrupts the CPU | [`labs/07-custom-peripheral/`](labs/07-custom-peripheral/) |
+| `lab 08` | *(optional)* Multi-node IoT network: three FE310 machines on a shared UART hub, sensors reporting to a gateway | [`labs/08-multi-node-iot/`](labs/08-multi-node-iot/) |
 
 Labs are ordered by difficulty: **00** is a 5-minute taste of MMIO on
 ARM, 01–02 run bundled images, 03 builds a minimal custom SoC, 04–05
@@ -408,6 +410,33 @@ in ~4 lines, re-run, and read it from the monitor with
 `sysbus ReadDoubleWord 0x10001010` — you've just extended a hardware
 block. Your peripheral shows up in `peripherals`, logs bus accesses,
 and raises real interrupts, indistinguishable from a built-in model.
+
+### Lab 08 — Multi-node IoT network (optional)
+
+Full walkthrough: [`labs/08-multi-node-iot/README.md`](labs/08-multi-node-iot/README.md).
+
+```bash
+lab 08            # boots 3 FE310 machines on one shared UART bus
+```
+
+Every prior lab ran a single machine; this one runs **three** in one
+emulation. A shared `UARTHub` (`emulation CreateUARTHub "bus"`) is the
+broadcast medium; each node's `uart1` is wired onto it with
+`connector Connect sysbus.uart1 bus`. One C source builds three images
+(`-DNODE_ID`): two sensor nodes broadcast fake readings, and a gateway
+node collects them:
+
+```
+[gateway] report: node1 t=21 seq=0
+[gateway] report: node2 t=22 seq=0
+[gateway] report: node1 t=22 seq=1
+...
+```
+
+Mini-experiment: `connector Disconnect sysbus.uart1 bus` on `sensor2`
+and its reports stop reaching the gateway — the connector *is* the
+network. The same `connector` pattern scales to Ethernet, CAN, and
+true 802.15.4/BLE wireless meshes.
 
 ## How this works
 

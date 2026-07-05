@@ -1,0 +1,41 @@
+// One IoT node: a SiFive FE310-G000 (the SoC on the HiFive1 board),
+// trimmed to what this lab touches. The same description is loaded into
+// three separate machines (gateway + two sensors); each gets its own
+// CPU, RAM and peripherals — nothing is shared except the UART hub the
+// .resc wires up between the uart1 blocks.
+//
+// Both UARTs use the real FE310 datasheet addresses:
+//   uart0 @ 0x10013000  local console
+//   uart1 @ 0x10023000  shared network bus ("radio")
+
+cpu: CPU.RiscV32 @ sysbus
+    cpuType: "rv32imac_zicsr_zifencei"
+    privilegedArchitecture: PrivilegedArchitecture.Priv1_10
+    timeProvider: clint
+
+// 16 KiB data tightly-integrated memory: all the RAM the FE310 has.
+dtim: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000
+
+// Mask ROM holds the reset vector on real silicon. We LoadELF and jump
+// straight to _start, so it stays empty here.
+maskRom: Memory.MappedMemory @ sysbus 0x1000
+    size: 0x1000
+
+clint: IRQControllers.CoreLevelInterruptor @ sysbus 0x02000000
+    [0,1] -> cpu@[3,7]
+    frequency: 62000000
+
+plic: IRQControllers.PlatformLevelInterruptController @ sysbus 0x0C000000
+    0 -> cpu@11
+    numberOfSources: 52
+    numberOfContexts: 1
+
+// Local console — one analyzer window per node.
+uart0: UART.SiFive_UART @ sysbus 0x10013000
+    IRQ -> plic@3
+
+// Network bus. Connected to a shared UART hub in the .resc; every byte
+// this node transmits is broadcast to the uart1 RX of the other nodes.
+uart1: UART.SiFive_UART @ sysbus 0x10023000
+    IRQ -> plic@4

@@ -1,0 +1,32 @@
+:name: Multi-node IoT network (3x SiFive FE310 over a shared UART bus)
+:description: Three machines share one UART hub; sensors broadcast readings, a gateway collects them.
+
+# The shared broadcast medium. A UART hub relays every byte transmitted
+# by one connected UART to the RX of all the OTHERS — a faithful stand-in
+# for a multi-drop bus or a single shared radio channel.
+emulation CreateUARTHub "bus"
+
+# ---------------- Node 0: the gateway ----------------
+mach create "gateway"
+machine LoadPlatformDescription @renode/iot-node.repl
+sysbus LoadELF @node0.elf
+connector Connect sysbus.uart1 bus
+showAnalyzer sysbus.uart0
+
+# ---------------- Node 1: sensor ----------------
+mach create "sensor1"
+machine LoadPlatformDescription @renode/iot-node.repl
+sysbus LoadELF @node1.elf
+connector Connect sysbus.uart1 bus
+showAnalyzer sysbus.uart0
+
+# ---------------- Node 2: sensor ----------------
+mach create "sensor2"
+machine LoadPlatformDescription @renode/iot-node.repl
+sysbus LoadELF @node2.elf
+connector Connect sysbus.uart1 bus
+showAnalyzer sysbus.uart0
+
+# Starting the emulation starts every machine AND the hub together, so
+# all three nodes advance on one shared simulated clock.
+start
