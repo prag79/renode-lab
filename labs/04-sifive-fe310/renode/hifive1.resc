@@ -3,6 +3,12 @@
 
 mach create "hifive1"
 machine LoadPlatformDescription @renode/hifive1.repl
-sysbus LoadELF @blink.elf
+
+macro reset
+"""
+    sysbus LoadELF @blink.elf
+"""
+
+runMacro $reset
 showAnalyzer sysbus.uart0
 start

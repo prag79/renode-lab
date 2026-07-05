@@ -3,6 +3,12 @@
 
 mach create "mini-rv"
 machine LoadPlatformDescription @renode/mini-rv.repl
-sysbus LoadELF @selftest.elf
+
+macro reset
+"""
+    sysbus LoadELF @selftest.elf
+"""
+
+runMacro $reset
 showAnalyzer sysbus.uart
 start

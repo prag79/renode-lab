@@ -1,6 +1,16 @@
 :name: mini-rv
 mach create "mini-rv"
 machine LoadPlatformDescription @renode/mini-rv.repl
-sysbus LoadELF @hello.elf
+
+# Renode's `machine Reset` command looks up a macro named
+# `<machine>.reset` (hyphens -> underscores, so mini_rv.reset).
+# Without this block, `machine Reset` fails with "macro mini_rv.reset
+# is not registered".
+macro reset
+"""
+    sysbus LoadELF @hello.elf
+"""
+
+runMacro $reset
 showAnalyzer sysbus.uart
 start

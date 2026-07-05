@@ -3,6 +3,12 @@
 
 mach create "hifive1-irq"
 machine LoadPlatformDescription @renode/hifive1.repl
-sysbus LoadELF @timer.elf
+
+macro reset
+"""
+    sysbus LoadELF @timer.elf
+"""
+
+runMacro $reset
 showAnalyzer sysbus.uart0
 start

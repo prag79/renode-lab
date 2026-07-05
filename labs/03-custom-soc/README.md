@@ -60,10 +60,21 @@ The `.resc` script is short enough to read in one screen — open
 ```
 mach create "mini-rv"
 machine LoadPlatformDescription @renode/mini-rv.repl
-sysbus LoadELF @hello.elf
+
+macro reset
+"""
+    sysbus LoadELF @hello.elf
+"""
+
+runMacro $reset
 showAnalyzer sysbus.uart
 start
 ```
+
+The `macro reset` block is required for `machine Reset` to work.
+Renode registers it as `mini_rv.reset` (machine name with hyphens
+mapped to underscores). Without it, `machine Reset` errors with
+*macro mini_rv.reset is not registered*.
 
 The `@` paths are *relative*, so they resolve against whatever
 directory Renode is launched from. The `lab 03` dispatcher
@@ -117,7 +128,6 @@ simulation; the prompt comes back. Then:
 pause
 sysbus.uart CreateFileBackend @/tmp/mini-rv.log true
 machine Reset
-sysbus LoadELF @hello.elf
 start
 ```
 
@@ -129,7 +139,8 @@ cat /tmp/mini-rv.log
 
 The `*** Hello from custom RV64 SoC! ***` banner is in the file.
 (`CreateFileBackend` only captures bytes written *after* it is
-attached, which is why we reset and reload the ELF.)
+attached; `machine Reset` re-runs the reset macro, which reloads
+`hello.elf` and runs `_start` again.)
 
 For an interactive socket terminal:
 
@@ -138,7 +149,6 @@ pause
 emulation CreateServerSocketTerminal 3458 "mini-rv-tty"
 connector Connect sysbus.uart mini-rv-tty
 machine Reset
-sysbus LoadELF @hello.elf
 start
 ```
 
@@ -164,7 +174,7 @@ makes `Step` and raw memory pokes especially fun here.
 | `sysbus ReadByte 0x10000005` | Read the NS16550 line-status register; bit 5 (`THRE`) tells you the TX FIFO is empty. |
 | `logLevel 0 sysbus.uart` | Verbose-log every UART access. Reset with `logLevel 3 sysbus.uart`. |
 | `emulation RunFor "0.001"` | Advance exactly 1 ms of simulated time, then auto-pause. |
-| `machine Reset` | Reset the CPU; PC jumps back to `_start`. ELF stays loaded. |
+| `machine Reset` | Run the `reset` macro — reloads `hello.elf`, PC back to `_start`. |
 | `quit` | Exit Renode. |
 
 ## 6. Mini-experiments (try at least one)
