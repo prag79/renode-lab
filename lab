@@ -48,7 +48,7 @@ cmd="${1:-list}"; shift || true
 
 case "$cmd" in
   list|"")
-    echo "Available labs:"
+    echo "Available labs (00–07 core, 08 optional capstone):"
     echo "  00       - bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: lab demo)"
     echo "  01       - bundled STM32F4 demo (sanity check)"
     echo "  02       - Linux on SiFive HiFive Unleashed (RISC-V)"

@@ -118,8 +118,9 @@ gh pr create --repo prag79/renode-lab \
 Labs are ordered by difficulty: **00** is a 5-minute taste of MMIO on
 ARM, 01–02 run bundled images, 03 builds a minimal custom SoC, 04–05
 move to a real SiFive chip with real peripherals and interrupts, 06
-turns it all into an automated regression test, and 07 has you write a
-brand-new peripheral model that the CPU talks to.
+turns it all into an automated regression test, 07 has you write a
+brand-new peripheral model that the CPU talks to, and **08** *(optional)*
+runs three machines on a shared UART bus as a multi-node IoT capstone.
 
 ## Step-by-step tutorials
 

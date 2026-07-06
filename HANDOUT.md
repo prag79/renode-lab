@@ -1,11 +1,12 @@
 # Student Handout — Renode Lab on GitHub Codespaces
 
-Welcome. Over the next few hours you will simulate eight different
+Welcome. Over the next few hours you will simulate nine different
 embedded systems — from a 5-minute MMIO taste on a bare-metal ARM
 Cortex-A9, through a Cortex-M4 microcontroller and a multi-core
 RISC-V Linux SoC, all the way to a SiFive FE310 with timer interrupts,
-a Robot-driven CI suite, and a peripheral you write yourself in C# —
-all inside a browser tab, with **nothing installed on your laptop**.
+a Robot-driven CI suite, a peripheral you write yourself in C#, and an
+optional multi-node IoT network — all inside a browser tab, with
+**nothing installed on your laptop**.
 
 This document walks you through the setup once. After that,
 everything you need is in the per-lab `README.md` files in the
@@ -169,7 +170,7 @@ lab list
 You should see all the available labs:
 
 ```
-Available labs:
+Available labs (00–07 core, 08 optional capstone):
   00       - bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: lab demo)
   01       - bundled STM32F4 demo (sanity check)
   02       - Linux on SiFive HiFive Unleashed (RISC-V)
@@ -178,8 +179,13 @@ Available labs:
   05       - FE310 timer interrupts: blink from a CLINT ISR
   06       - headless regression testing with the Robot framework
   07       - model your own peripheral (custom C# timer IP)
+  08       - (optional) multi-node IoT network: 3x FE310 over a shared UART bus
   monitor  - plain Renode interactive monitor
 ```
+
+Lab **08** is an optional capstone — three simulated FE310 boards on
+one shared UART bus (sensors + gateway). You don't need it for the
+sanity check below; run it after labs 00–07 when you're ready.
 
 Then run lab 01:
 
@@ -202,7 +208,7 @@ first, your environment is healthy. Type `quit` to exit.
 
 If anything above fails, see **§ 5 Troubleshooting**.
 
-## 3. The eight exercises
+## 3. The nine exercises
 
 Each lab has its own detailed `README.md` with a 7-section
 walkthrough — bring up, what just happened, first commands,
@@ -408,6 +414,7 @@ cheat sheet):
 Open lab:           click the badge in the README
 List labs:          lab list                              (banner runs this on attach)
 Quick taste:        lab 00      (a.k.a. lab demo)         5-min ARM MMIO warm-up
+Optional capstone:  lab 08                                  multi-node IoT (3x FE310)
 Verify install:     lab list && lab 01 -> start -> sysbus.cpu PC -> quit
 Edit + re-run:      edit ~/work/<lab>/..., then lab NN
 Read UART:          (in monitor) sysbus.uartN CreateFileBackend @/tmp/uartN.log true

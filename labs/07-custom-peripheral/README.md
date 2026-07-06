@@ -229,7 +229,9 @@ Your peripheral is a first-class citizen in the monitor.
 quit
 ```
 
-…or `Ctrl-D`.
+…or `Ctrl-D`. For an optional follow-on, `lab 08` boots three FE310
+machines on a shared UART bus — sensors reporting to a gateway — the
+multi-node IoT capstone.
 
 ## What this lab proves
 
