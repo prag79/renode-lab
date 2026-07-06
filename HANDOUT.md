@@ -33,7 +33,48 @@ when you're done for the day. Leaving a Codespace running idle
 burns compute hours; leaving it created-but-stopped burns
 storage. We'll cover both at the end.
 
-### 1.2 A modern web browser
+### 1.2 (Recommended) The GitHub Student Developer Pack
+
+If you're a student, apply for the free **GitHub Student Developer
+Pack**. It upgrades your account to **GitHub Pro** at no cost, which
+**roughly doubles your Codespaces quota** — a real benefit for this
+lab and every future one you run in Codespaces:
+
+| Resource | Free account | With Student Pack (Pro) |
+|---|---|---|
+| Codespaces compute | 120 core-hours / month | **180 core-hours / month** |
+| Codespaces storage | 15 GB-month | **20 GB-month** |
+
+*(Quotas are GitHub's published figures at the time of writing and may
+change; check your account's Billing page for the current numbers.)*
+
+The Pack also bundles dozens of other free developer tools and cloud
+credits you'll find useful beyond this course.
+
+**How to get it (do this before your first launch if you can — approval
+can take anywhere from a few minutes to a few days):**
+
+1. Make sure you're signed in to the **personal GitHub account** from
+   §1.1 (apply on the account you'll actually use for the labs).
+2. Go to <https://education.github.com/pack> and click **Sign up for
+   Student Developer Pack** (then **Get student benefits**).
+3. Choose your account type as **Student** and select your school.
+4. **Verify you're a student.** Fastest is a **school-issued email
+   address** (`@school.edu`) — GitHub often approves it instantly. If
+   you don't have one, upload **dated proof of enrollment** instead
+   (student ID, class schedule, transcript, or enrollment letter with
+   your name and school name visible).
+5. Add your school name and **expected graduation date**, then submit.
+6. Watch for the approval email. Once approved, **GitHub Pro is applied
+   to your account automatically** — there's nothing to install, and
+   your higher Codespaces quota takes effect immediately.
+
+> **Already have it?** If your account already shows GitHub Pro (Student),
+> you're done — just launch the lab in §2. **Not a student, or waiting on
+> approval?** The free-tier quota in §1.1 is enough to complete every lab;
+> the Pack simply gives you more headroom.
+
+### 1.3 A modern web browser
 
 Chrome, Firefox, Safari, or Edge — anything from the last two
 years. You will spend the entire lab in two browser tabs:
@@ -43,7 +84,7 @@ years. You will spend the entire lab in two browser tabs:
 2. The **noVNC desktop** tab on port 6080 (Renode's GUI
    analyzers — UART windows, GPIO/LED indicators, etc.).
 
-### 1.3 Working knowledge of basic Linux
+### 1.4 Working knowledge of basic Linux
 
 You should be comfortable doing all of these from a terminal
 without looking them up:
@@ -59,7 +100,7 @@ without looking them up:
 You do **not** need to know Docker, Kubernetes, or anything
 about Codespaces internals.
 
-### 1.4 Familiarity with basic SoC concepts
+### 1.5 Familiarity with basic SoC concepts
 
 You should already understand, at a hand-wave level:
 
@@ -266,14 +307,19 @@ upstream main` is conflict-free:
 git checkout -b my-experiments
 ```
 
-**3. Copy your edits from `~/work/...` back into the tracked
-tree.** `cp -ru` mirrors files only when newer:
+**3. Copy your edits from `~/work/...` into the git-tracked lab
+folders inside the cloned repo** — **not** into `/labs/...` at the
+filesystem root (that path is read-only image content and is not in git):
 
 ```bash
-cp -ru ~/work/00-Demo/.        labs/00-Demo/
-cp -ru ~/work/03-custom-soc/.  labs/03-custom-soc/
+cp -ru ~/work/00-Demo/.       /workspaces/renode-lab/labs/00-Demo/
+cp -ru ~/work/03-custom-soc/. /workspaces/renode-lab/labs/03-custom-soc/
 # ...repeat for any other lab you tweaked.
 ```
+
+> **Two different `labs` paths — don't mix them up:**
+> - `/labs/00-Demo/` — baked into the Docker image, read-only, **not** in git.
+> - `/workspaces/renode-lab/labs/00-Demo/` — inside your cloned repo, **tracked by git**. Copy here before `git commit`.
 
 **4. Commit and push to your fork.**
 
@@ -374,7 +420,7 @@ Reset firmware:     machine Reset
 Exit Renode:        quit
 Save your work:     gh repo fork --remote --remote-name=origin    (one-time)
                     git checkout -b my-experiments
-                    cp -ru ~/work/<lab>/. labs/<lab>/             (per lab)
+                    cp -ru ~/work/<lab>/. /workspaces/renode-lab/labs/<lab>/   (per lab; NOT /labs/)
                     git add -A && git commit -m "..." && git push -u origin my-experiments
 Stop Codespace:     bottom-left of VS Code -> Stop codespace
 Delete Codespace:   gh codespace delete -c <name> --force         (safe AFTER push above)

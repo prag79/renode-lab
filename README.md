@@ -75,9 +75,10 @@ git remote -v       # sanity check: origin = <you>/renode-lab, upstream = prag79
 # 2. (Recommended) work on a branch, not main:
 git checkout -b my-experiments
 
-# 3. Copy whatever you edited under ~/work/... back into the tracked tree:
-cp -ru ~/work/03-custom-soc/. labs/03-custom-soc/
-cp -ru ~/work/00-Demo/.        labs/00-Demo/
+# 3. Copy whatever you edited under ~/work/... back into the tracked tree
+#    (inside the cloned repo — NOT the read-only /labs/ image path):
+cp -ru ~/work/03-custom-soc/. /workspaces/renode-lab/labs/03-custom-soc/
+cp -ru ~/work/00-Demo/.       /workspaces/renode-lab/labs/00-Demo/
 # ...repeat for any other lab you tweaked.
 
 # 4. Stage, commit, push to YOUR fork:
