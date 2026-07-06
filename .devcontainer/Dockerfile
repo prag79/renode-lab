@@ -72,7 +72,8 @@ RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
 COPY --chown=student:student labs/ /labs/
 COPY lab            /usr/local/bin/lab
 COPY entrypoint.sh  /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/lab /usr/local/bin/entrypoint.sh
+COPY sync-labs.sh   /usr/local/bin/sync-labs.sh
+RUN chmod +x /usr/local/bin/lab /usr/local/bin/entrypoint.sh /usr/local/bin/sync-labs.sh
 
 USER student
 WORKDIR /home/student/work
