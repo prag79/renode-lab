@@ -49,11 +49,31 @@ if [[ "${LAB_GUI:-0}" == "1" ]]; then
   fi
 
   start_if_missing "Xvfb :1"             Xvfb :1 -screen 0 1280x800x24
+
   wait_for_display ":1" || true
   start_if_missing "fluxbox"             fluxbox
-  start_if_missing "x11vnc -display :1"  x11vnc -display :1 -forever -shared -rfbport 5901 -nopw -quiet
-  start_if_missing "websockify"          websockify --web=/usr/share/novnc 6080 localhost:5901
+
+  # x11vnc flags for a stable Codespaces tunnel:
+  #   -forever -shared  survive client disconnects / allow reconnects
+  #   -noxdamage        poll the framebuffer instead of relying on the
+  #                     XDAMAGE extension, which under Xvfb can miss or
+  #                     mis-report updates and wedge the session
+  #   -wait/-defer 50   batch framebuffer updates (~20 fps cap) so a busy
+  #                     analyzer can't flood the VNC pipe and stall it
+  # (-forever already keeps the server alive across client disconnects,
+  #  and with no -timeout x11vnc waits indefinitely for the first client.)
+  start_if_missing "x11vnc -display :1"  x11vnc -display :1 -forever -shared \
+      -noxdamage -wait 50 -defer 50 -rfbport 5901 -nopw -quiet
+
+  # --heartbeat=30 makes websockify send a WebSocket ping every 30 s.
+  # Without it, GitHub Codespaces' port-forwarding proxy treats a quiet
+  # tunnel as idle and closes it, so noVNC "loses the connection" even
+  # though x11vnc/Xvfb are perfectly healthy. The ping keeps it warm.
+  start_if_missing "websockify"          websockify --web=/usr/share/novnc \
+      --heartbeat=30 6080 localhost:5901
+
   echo "Desktop ready: open the auto-forwarded port 6080 (path /vnc.html)"
+  echo "Tip: for auto-reconnect use  /vnc.html?autoconnect=1&reconnect=1&reconnect_delay=2000"
   echo "Service logs: $LOG_DIR/{Xvfb_:1,fluxbox,x11vnc_-display_:1,websockify}.log"
 fi
 
