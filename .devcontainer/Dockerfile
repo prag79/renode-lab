@@ -21,6 +21,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
         mono-complete libgtk2.0-0 screen policykit-1 \
         gtk-sharp2 libgtk2.0-cil libgdiplus \
+        python3 python3-pip \
         gcc-riscv64-unknown-elf  picolibc-riscv64-unknown-elf  binutils-riscv64-unknown-elf \
         gcc-arm-none-eabi        libnewlib-arm-none-eabi      binutils-arm-none-eabi \
         gcc-riscv64-linux-gnu    binutils-riscv64-linux-gnu \
@@ -55,6 +56,20 @@ RUN ARCH="$(dpkg --print-architecture)" && \
     ln -s /opt/renode/renode /usr/local/bin/renode && \
     if [ -f /opt/renode/renode-test ]; then ln -s /opt/renode/renode-test /usr/local/bin/renode-test; fi && \
     rm /tmp/renode.tgz
+
+# Renode's test runner (renode-test / Robot Framework, used in lab 06)
+# needs Python deps. Without them `lab 06` fails with
+# "No module named 'psutil'". We pin the same versions Renode ships in
+# tests/requirements.txt, but install them explicitly instead of via
+# `-r tests/requirements.txt` because that file pulls in relative
+# `-r ../tools/.../requirements.txt` includes that aren't present in the
+# portable tarball (and would break the build). These four cover the
+# Robot UART suite in lab 06.
+RUN pip3 install --no-cache-dir \
+        robotframework==6.1 \
+        robotframework-retryfailed==0.2.0 \
+        psutil==5.9.3 \
+        "pyyaml==6.0.*"
 
 # Non-root user with sudo (matches devcontainer.json's remoteUser).
 RUN useradd -m -s /bin/bash -G sudo student && \
