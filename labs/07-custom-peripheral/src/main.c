@@ -25,8 +25,12 @@
 #define CTRL_IRQ_ENABLE (1U << 1)
 #define STATUS_PENDING  (1U << 0)
 
-/* Timer runs at 1 MHz (the C# default), so 1,000,000 ticks ~= 1 s. */
-#define PERIOD_TICKS    1000000U
+/* Timer runs at 1 MHz (the C# default), so 1,000,000 ticks == 1 s.
+ * We use 200,000 ticks (~0.2 s, i.e. ~5 ticks/second) so the first
+ * "tick" appears quickly and the cadence stays lively in a Codespace,
+ * where simulated time can lag wall-clock time. Bump this back up to
+ * 1000000U if you want a slower, once-per-second beat. */
+#define PERIOD_TICKS    200000U
 
 /* ---- CSR helpers ---- */
 #define read_csr(reg) ({ unsigned long __v; \
