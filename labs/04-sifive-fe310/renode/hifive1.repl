@@ -31,4 +31,3 @@ uart0: UART.SiFive_UART @ sysbus 0x10013000
     IRQ -> plic@3
 
 gpio: GPIOPort.SiFive_GPIO @ sysbus 0x10012000
-    [0-31] -> plic@[8-39]
