@@ -26,11 +26,12 @@
 #define STATUS_PENDING  (1U << 0)
 
 /* Timer runs at 1 MHz (the C# default), so 1,000,000 ticks == 1 s.
- * We use 50,000 ticks (~0.05 s, i.e. ~20 ticks/second) so the first
- * "tick" appears almost immediately and the cadence stays lively in a
- * Codespace, where simulated time can lag wall-clock time. Bump this
- * back up (e.g. 1000000U) if you want a slower, once-per-second beat. */
-#define PERIOD_TICKS    50000U
+ * We use one tick per second: fast enough to see activity quickly, but
+ * slow enough that the UART analyzer, the noVNC desktop, and the Renode
+ * monitor aren't flooded. A much faster rate (e.g. 50000U, ~20/s) makes
+ * the CPU wake and redraw so often that the noVNC connection can drop.
+ * Lower this if you want a livelier beat, but keep it >= ~100000U. */
+#define PERIOD_TICKS    1000000U
 
 /* ---- CSR helpers ---- */
 #define read_csr(reg) ({ unsigned long __v; \
