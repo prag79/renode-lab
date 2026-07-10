@@ -193,6 +193,11 @@ namespace Antmicro.Renode.Peripherals.Timers
             ///        pulled low explicitly so the interrupt controller
             ///        sees the falling edge.
             IRQ.Unset();
+
+            /// @brief Reset the log-bookkeeping so a fresh run starts from
+            ///        "tick #1" with the IRQ line known-low.
+            tickCount = 0;
+            lastIrqState = false;
         }
 
         /// @brief Size of the peripheral's window on the system bus.
@@ -287,10 +292,13 @@ namespace Antmicro.Renode.Peripherals.Timers
         /// touch peripheral state without extra locking.
         private void OnLimitReached()
         {
+            tickCount++;
+
             /// @brief Visible at default monitor log level (INFO). Students
             ///        should see this in the Renode console every ~1 s when
-            ///        the timer fires, alongside the UART line from firmware.
-            this.Log(LogLevel.Info, "Timer interrupt: period elapsed, STATUS.PENDING=1");
+            ///        the timer fires, alongside the `tick` UART line from
+            ///        the firmware's trap handler.
+            this.Log(LogLevel.Info, "tick #{0}: period elapsed, setting STATUS.PENDING=1", tickCount);
 
             pendingFlag.Value = true;
             UpdateInterrupt();
@@ -314,17 +322,29 @@ namespace Antmicro.Renode.Peripherals.Timers
         {
             var irq = pendingFlag.Value && irqEnableFlag.Value;
 
-            if (irq)
+            /// @brief Log only on an actual change of the IRQ line so the
+            ///        monitor shows one clear "raised" / "cleared" pair per
+            ///        tick, instead of a line on every register touch (the
+            ///        firmware's CONTROL-enable write, for example, would
+            ///        otherwise print a confusing "deasserted" line before
+            ///        the timer has even fired once).
+            if (irq != lastIrqState)
             {
-                this.Log(LogLevel.Info, "Timer interrupt: asserting IRQ line -> cpu@11");
+                if (irq)
+                {
+                    this.Log(LogLevel.Info, "tick #{0}: raising IRQ -> cpu@11 (CPU will trap)", tickCount);
+                }
+                else
+                {
+                    this.Log(LogLevel.Info, "tick #{0}: firmware acknowledged, IRQ cleared", tickCount);
+                }
+                lastIrqState = irq;
             }
-            else if (pendingFlag.Value)
+            else if (pendingFlag.Value && !irqEnableFlag.Value)
             {
-                this.Log(LogLevel.Info, "Timer interrupt: PENDING set but IRQ masked (IRQ_ENABLE=0)");
-            }
-            else
-            {
-                this.Log(LogLevel.Info, "Timer interrupt: IRQ deasserted (acknowledged or disabled)");
+                /// @brief PENDING is set but the mask blocks delivery — worth
+                ///        a note because the CPU will never see this tick.
+                this.Log(LogLevel.Info, "tick #{0}: STATUS.PENDING set but IRQ_ENABLE=0 (masked)", tickCount);
             }
 
             IRQ.Set(irq);
@@ -352,6 +372,14 @@ namespace Antmicro.Renode.Peripherals.Timers
         ///        (writes drive `innerTimer.Limit` directly), but kept
         ///        available for future features (e.g. read-back).
         private IValueRegisterField reloadField;
+
+        /// @brief Number of times the timer has reached its limit. Purely
+        ///        for the human-readable "tick #N" log messages.
+        private uint tickCount;
+
+        /// @brief Last value driven onto the IRQ line, so UpdateInterrupt
+        ///        can log only on real transitions instead of every call.
+        private bool lastIrqState;
 
         /// @brief Fallback clock rate: 1 MHz. Overridable in the .repl
         ///        via `frequency: 32768` (or any other integer).

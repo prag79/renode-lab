@@ -35,13 +35,20 @@ In the **Renode monitor** (same terminal as `lab 07`) you'll also see
 INFO lines from the C# model every ~1 s:
 
 ```
-[INFO] mytimer: Timer interrupt: period elapsed, STATUS.PENDING=1
-[INFO] mytimer: Timer interrupt: asserting IRQ line -> cpu@11
-[INFO] mytimer: Timer interrupt: IRQ deasserted (acknowledged or disabled)
+[INFO] mytimer: tick #1: period elapsed, setting STATUS.PENDING=1
+[INFO] mytimer: tick #1: raising IRQ -> cpu@11 (CPU will trap)
+[INFO] mytimer: tick #1: firmware acknowledged, IRQ cleared
+[INFO] mytimer: tick #2: period elapsed, setting STATUS.PENDING=1
+...
 ```
 
-Those three lines are the hardware side of the same tick — period
-elapsed, IRQ raised, firmware acked via `STATUS` write-1-to-clear.
+Those three lines are the hardware side of one tick — period elapsed,
+IRQ raised into the CPU, then the firmware's trap handler acks it via
+the `STATUS` write-1-to-clear, dropping the line. The `tick #N`
+counter climbs so you can see the interrupt is periodic. The first
+tick appears ~1 s after `start` (the period is 1,000,000 ticks at
+1 MHz); before that the only mytimer activity is the firmware's
+one-time `CONTROL` enable write, which is intentionally not logged.
 
 Each `tick` is your C# peripheral firing its `LimitReached` event,
 raising the IRQ line you wired to the CPU, and the firmware's trap
