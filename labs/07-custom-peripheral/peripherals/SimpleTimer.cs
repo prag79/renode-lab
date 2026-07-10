@@ -257,9 +257,23 @@ namespace Antmicro.Renode.Peripherals.Timers
             RegistersCollection.DefineRegister((long)Registers.Reload)
                 .WithValueField(0, 32, out reloadField, name: "RELOAD",
                     /// @brief Push the new period into the time base.
-                    ///        Because `WorkMode.Periodic` is set, the
-                    ///        next auto-reload uses this new limit.
-                    writeCallback: (_, value) => { innerTimer.Limit = (value == 0 ? 1UL : value); });
+                    ///
+                    /// We set BOTH `Limit` and `Value`. Setting `Limit`
+                    /// alone only changes the value used at the *next*
+                    /// auto-reload; it does NOT reload the live counter,
+                    /// which was initialised to `uint.MaxValue` in the
+                    /// constructor. Without also assigning `Value`, the
+                    /// timer keeps counting down from `uint.MaxValue`
+                    /// (~71 minutes at 1 MHz) and never reaches the limit,
+                    /// so the interrupt never fires. Assigning `Value`
+                    /// reloads the counter immediately so the very first
+                    /// period honours the RELOAD the firmware just wrote.
+                    writeCallback: (_, value) =>
+                    {
+                        var limit = (value == 0 ? 1UL : value);
+                        innerTimer.Limit = limit;
+                        innerTimer.Value = limit;
+                    });
 
             /// @brief COUNTER register (offset 0x08, read-only).
             ///        Returns the live counter from the time base.
