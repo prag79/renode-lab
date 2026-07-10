@@ -34,8 +34,12 @@ gpio: GPIOPort.SiFive_GPIO @ sysbus 0x10012000
     19 -> led@0
 
 // The firmware drives pin 19 (the green LED on a real HiFive1 rev B).
-// A GPIO output pin must have a receiver connected, otherwise every
-// write logs "Trying to write a pin that isn't configured for writing".
-// Connecting an LED both silences that warning and gives a peripheral
-// you can inspect: `gpio.led State` (True/False) or `logLevel -1 gpio.led`.
+// Wiring an LED to pin 19 gives you an inspectable peripheral:
+//   gpio.led State        -> True/False, tracks the blink
+//   logLevel -1 gpio.led  -> log every LED transition
+// NOTE: this does NOT stop the "Trying to write a pin that isn't
+// configured for writing" warnings. Those come from the SiFive_GPIO
+// model touching every one of the 32 pins on each OUTPUT_VAL write and
+// warning for the pins the firmware never output-enabled. That noise is
+// hushed in hifive1.resc via `logLevel 3 sysbus.gpio`.
 led: Miscellaneous.LED @ gpio 19

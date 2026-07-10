@@ -73,10 +73,18 @@ clint: IRQControllers.CoreLevelInterruptor @ 0x02000000  # used in lab 05
 plic:  IRQControllers.PlatformLevelInterruptController @ 0x0C000000
 ```
 
-The `led` on pin 19 is what the firmware blinks. A GPIO output pin
-needs a receiver connected, or Renode logs *Trying to write a pin
-that isn't configured for writing* on every toggle. Connecting the
-LED silences that and gives you `gpio.led State` to read.
+The `led` on pin 19 is what the firmware blinks. Connecting it gives
+you an inspectable peripheral — `gpio.led State` (True/False) tracks
+the blink.
+
+> **About the `Trying to write a pin that isn't configured for
+> writing` warnings.** The firmware only output-enables pin 19, but
+> Renode's `SiFive_GPIO` model walks all 32 pins on every `OUTPUT_VAL`
+> write (a read-modify-write) and warns for each pin that was never
+> output-enabled. It's benign model chatter, *not* a firmware bug, and
+> the LED connection does not change it. `hifive1.resc` hushes it with
+> `logLevel 3 sysbus.gpio`; run `logLevel 0 sysbus.gpio` if you want
+> the GPIO access log back.
 
 Every address is the real FE310 memory map — compare it to SiFive's
 FE310-G000 manual and they line up. Same three primitives as every

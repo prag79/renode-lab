@@ -4,6 +4,15 @@
 mach create "hifive1"
 machine LoadPlatformDescription @renode/hifive1.repl
 
+# The blink firmware only output-enables pin 19. Renode's SiFive_GPIO
+# model, however, walks all 32 pins on every OUTPUT_VAL write (it is a
+# read-modify-write) and logs a WARNING for each pin that isn't
+# output-enabled: "Trying to write a pin that isn't configured for
+# writing." That is benign model chatter, not a firmware bug, but it
+# floods the console. Raise gpio's log threshold to ERROR so only real
+# problems show. Undo any time with `logLevel 0 sysbus.gpio`.
+logLevel 3 sysbus.gpio
+
 macro reset
 """
     sysbus LoadELF @blink.elf
