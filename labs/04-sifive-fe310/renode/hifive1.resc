@@ -20,4 +20,4 @@ macro reset
 
 runMacro $reset
 showAnalyzer sysbus.uart0
-start
+
