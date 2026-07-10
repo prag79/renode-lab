@@ -4,6 +4,13 @@
 mach create "hifive1-irq"
 machine LoadPlatformDescription @renode/hifive1.repl
 
+# Same benign chatter as lab 04: the firmware only output-enables pin
+# 19, but Renode's SiFive_GPIO model walks all 32 pins on every
+# OUTPUT_VAL write and warns for each pin that isn't output-enabled.
+# Hush gpio warnings so the timer-ISR output stays readable. Undo with
+# `logLevel 0 sysbus.gpio`.
+logLevel 3 sysbus.gpio
+
 macro reset
 """
     sysbus LoadELF @timer.elf
