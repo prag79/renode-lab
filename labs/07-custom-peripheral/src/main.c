@@ -26,11 +26,11 @@
 #define STATUS_PENDING  (1U << 0)
 
 /* Timer runs at 1 MHz (the C# default), so 1,000,000 ticks == 1 s.
- * We use 200,000 ticks (~0.2 s, i.e. ~5 ticks/second) so the first
- * "tick" appears quickly and the cadence stays lively in a Codespace,
- * where simulated time can lag wall-clock time. Bump this back up to
- * 1000000U if you want a slower, once-per-second beat. */
-#define PERIOD_TICKS    200000U
+ * We use 50,000 ticks (~0.05 s, i.e. ~20 ticks/second) so the first
+ * "tick" appears almost immediately and the cadence stays lively in a
+ * Codespace, where simulated time can lag wall-clock time. Bump this
+ * back up (e.g. 1000000U) if you want a slower, once-per-second beat. */
+#define PERIOD_TICKS    50000U
 
 /* ---- CSR helpers ---- */
 #define read_csr(reg) ({ unsigned long __v; \

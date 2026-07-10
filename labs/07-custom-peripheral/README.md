@@ -32,7 +32,7 @@ tick from my custom timer IP
 ```
 
 In the **Renode monitor** (same terminal as `lab 07`) you'll also see
-INFO lines from the C# model on every tick (~5 times/second):
+INFO lines from the C# model on every tick (~20 times/second):
 
 ```
 [INFO] mytimer: tick #1: period elapsed, setting STATUS.PENDING=1
@@ -46,7 +46,7 @@ Those three lines are the hardware side of one tick — period elapsed,
 IRQ raised into the CPU, then the firmware's trap handler acks it via
 the `STATUS` write-1-to-clear, dropping the line. The `tick #N`
 counter climbs so you can see the interrupt is periodic. The first
-tick appears ~0.2 s after `start` (the period is 200,000 ticks at
+tick appears ~0.05 s after `start` (the period is 50,000 ticks at
 1 MHz — see `PERIOD_TICKS` in `src/main.c`); before that the only
 mytimer activity is the firmware's one-time `CONTROL` enable write,
 which is intentionally not logged.
@@ -151,7 +151,7 @@ the freshly-compiled type.
 Same interrupt setup as lab 05, but the source is *our* peripheral:
 
 ```c
-TIMER_RELOAD  = 200000;                    // 1 MHz timer -> ~0.2 s period (~5/s)
+TIMER_RELOAD  = 50000;                     // 1 MHz timer -> ~0.05 s period (~20/s)
 TIMER_CONTROL = CTRL_ENABLE | CTRL_IRQ_ENABLE;
 write_csr(mtvec, (unsigned long)&trap_handler);
 set_csr(mie, 1UL << 11);                   // MEIE: machine external irq
