@@ -31,3 +31,11 @@ uart0: UART.SiFive_UART @ sysbus 0x10013000
     IRQ -> plic@3
 
 gpio: GPIOPort.SiFive_GPIO @ sysbus 0x10012000
+    19 -> led@0
+
+// The firmware drives pin 19 (the green LED on a real HiFive1 rev B).
+// A GPIO output pin must have a receiver connected, otherwise every
+// write logs "Trying to write a pin that isn't configured for writing".
+// Connecting an LED both silences that warning and gives a peripheral
+// you can inspect: `gpio.led State` (True/False) or `logLevel -1 gpio.led`.
+led: Miscellaneous.LED @ gpio 19

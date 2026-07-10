@@ -67,9 +67,16 @@ cpu:   CPU.RiscV32 @ sysbus            # rv32imac_zicsr_zifencei
 dtim:  Memory.MappedMemory @ 0x80000000  size 0x4000   # 16 KiB SRAM
 uart0: UART.SiFive_UART @ 0x10013000
 gpio:  GPIOPort.SiFive_GPIO @ 0x10012000
+    19 -> led@0                        # LED wired to pin 19
+led:   Miscellaneous.LED @ gpio 19
 clint: IRQControllers.CoreLevelInterruptor @ 0x02000000  # used in lab 05
 plic:  IRQControllers.PlatformLevelInterruptController @ 0x0C000000
 ```
+
+The `led` on pin 19 is what the firmware blinks. A GPIO output pin
+needs a receiver connected, or Renode logs *Trying to write a pin
+that isn't configured for writing* on every toggle. Connecting the
+LED silences that and gives you `gpio.led State` to read.
 
 Every address is the real FE310 memory map — compare it to SiFive's
 FE310-G000 manual and they line up. Same three primitives as every
@@ -95,7 +102,6 @@ prior lab: `mach create`, `LoadPlatformDescription`, `LoadELF` +
 pause
 sysbus.uart0 CreateFileBackend @/tmp/hifive1.log true
 machine Reset
-sysbus LoadELF @blink.elf
 start
 ```
 
@@ -107,7 +113,8 @@ tail -f /tmp/hifive1.log
 
 The banner and the `LED on` / `LED off` stream land in the file.
 (`CreateFileBackend` only captures bytes written *after* it is
-attached, which is why we reset and reload first.)
+attached; `machine Reset` re-runs the reset macro, which reloads
+`blink.elf` and restarts from `_start`.)
 
 ## 5. Useful monitor commands to try
 
@@ -123,11 +130,13 @@ STM32 and lab 03's NS16550 — worth poking by hand.
 | `sysbus.cpu LogFunctionNames true` | Log entries to `_start`, `main`, `uart_putc`, `delay`, … |
 | `sysbus ReadDoubleWord 0x1001200C` | Read GPIO `output_val`; bit 19 tracks the LED. |
 | `sysbus ReadDoubleWord 0x10012008` | Read GPIO `output_en`; bit 19 is set once `main` runs. |
+| `gpio.led State` | Read the connected LED object directly (`True`/`False`). |
+| `logLevel -1 gpio.led` | Log every LED state change as the blink loop runs. |
 | `sysbus WriteByte 0x10013000 0x41` | Write 'A' straight to the UART `txdata` register. |
 | `logLevel 0 sysbus.gpio` | Verbose-log every GPIO register access. Reset with `logLevel 3 sysbus.gpio`. |
 | `logLevel 0 sysbus.uart0` | Same for the UART. |
 | `emulation RunFor "0.01"` | Advance exactly 10 ms of simulated time, then auto-pause. |
-| `machine Reset` | Reset the CPU back to `_start`; ELF stays loaded. |
+| `machine Reset` | Run the `reset` macro — reloads `blink.elf`, PC back to `_start`. |
 | `quit` | Exit Renode. |
 
 ## 6. Mini-experiments (try at least one)
