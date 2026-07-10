@@ -11,6 +11,14 @@ mach create "gateway"
 machine LoadPlatformDescription @renode/iot-node.repl
 sysbus LoadELF @node0.elf
 connector Connect sysbus.uart1 bus
+
+# The gateway firmware polls uart1 RXDATA in a non-blocking loop while it
+# waits for sensor bytes. Renode's SiFive_UART model logs each empty poll as
+# a WARNING ("Trying to read data from empty receive fifo"), which can flood
+# the monitor and corrupt typed commands. Keep uart0 console logs visible, but
+# hide that expected polling noise on the gateway's network UART.
+logLevel 3 sysbus.uart1
+
 showAnalyzer sysbus.uart0
 
 # ---------------- Node 1: sensor ----------------

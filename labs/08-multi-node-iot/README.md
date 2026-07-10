@@ -158,6 +158,12 @@ That interleaving of `node1` and `node2` lines in one gateway window
 **is** the multi-node system working: two independent CPUs, each on its
 own RAM, sharing one medium, collected by a third.
 
+The gateway polls its network UART (`uart1`) while waiting for sensor
+traffic. Renode's SiFive UART model warns on empty RX reads, so the
+script intentionally raises only `gateway`'s `uart1` log threshold to
+ERROR. That hides expected polling noise like `Trying to read data from
+empty receive fifo` while keeping the `uart0` console analyzers visible.
+
 If the noVNC tab is unavailable, jump to §4 to read each console from
 the monitor with file backends.
 
