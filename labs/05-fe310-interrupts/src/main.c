@@ -65,6 +65,15 @@ static void uart_puts(const char *s) {
     }
 }
 
+/* Minimal unsigned-decimal printer (no libc in this bare-metal build). */
+static void uart_putu(uint32_t v) {
+    char buf[10];
+    int i = 0;
+    if (v == 0) { uart_putc('0'); return; }
+    while (v > 0) { buf[i++] = (char)('0' + (v % 10)); v /= 10; }
+    while (i > 0) { uart_putc(buf[--i]); }
+}
+
 static uint64_t read_mtime(void) {
     uint32_t hi, lo, hi2;
     do { hi = MTIME_HI; lo = MTIME_LO; hi2 = MTIME_HI; } while (hi != hi2);
@@ -87,27 +96,48 @@ static void set_mtimecmp(uint64_t v) {
  * mode, so the handler address must be 4-byte aligned (those bits 0 =
  * Direct). With the C extension GCC might otherwise place it on a
  * 2-byte boundary. */
+static uint32_t tick_count;
+
 void __attribute__((interrupt("machine"), aligned(4))) timer_isr(void) {
-    set_mtimecmp(read_mtime() + INTERVAL);   /* re-arm for the next tick */
-    GPIO_OUTPUT_VAL ^= LED_MASK;             /* flip the LED */
-    uart_puts("tick\n");
+    /* 1. We got here because mtime >= mtimecmp raised the machine-timer
+     *    interrupt (CLINT line 1 -> cpu@7) and the CPU trapped to mtvec. */
+    tick_count++;
+
+    /* 2. Re-arm the comparator so the next interrupt fires one INTERVAL
+     *    later. Without this the timer would fire once and never again. */
+    set_mtimecmp(read_mtime() + INTERVAL);
+
+    /* 3. Do the actual work: toggle the LED on GPIO pin 19. */
+    GPIO_OUTPUT_VAL ^= LED_MASK;
+    int led_on = (GPIO_OUTPUT_VAL & LED_MASK) != 0;
+
+    /* 4. Narrate what just happened so it's visible on the UART. */
+    uart_puts("[IRQ #");
+    uart_putu(tick_count);
+    uart_puts("] machine-timer fired -> re-armed mtimecmp, LED ");
+    uart_puts(led_on ? "ON\n" : "OFF\n");
 }
 
 int main(void) {
     UART_DIV    = 138;
     UART_TXCTRL = 1;
     uart_puts("\n*** FE310 timer-interrupt blink ***\n");
-    uart_puts("CPU will sleep in wfi and only wake on the CLINT timer.\n");
+    uart_puts("Setup: LED on GPIO pin 19, CLINT machine timer at ");
+    uart_putu(TICK_HZ);
+    uart_puts(" Hz.\n");
+    uart_puts("The CPU sleeps in 'wfi' and only wakes when the timer\n");
+    uart_puts("interrupt fires; each wake toggles the LED and prints a\n");
+    uart_puts("line below. Watch the [IRQ #N] counter climb.\n\n");
 
-    GPIO_OUTPUT_EN |= LED_MASK;
+    GPIO_OUTPUT_EN |= LED_MASK;               /* make pin 19 an output */
 
-    set_mtimecmp(read_mtime() + INTERVAL);   /* first deadline */
-    write_csr(mtvec, (unsigned long)&timer_isr);  /* direct mode (low bits 0) */
-    set_csr(mie, MIE_MTIE);                  /* enable machine timer irq */
-    set_csr(mstatus, MSTATUS_MIE);           /* global interrupt enable */
+    set_mtimecmp(read_mtime() + INTERVAL);    /* arm the first deadline */
+    write_csr(mtvec, (unsigned long)&timer_isr);  /* trap vector, direct mode */
+    set_csr(mie, MIE_MTIE);                   /* enable machine-timer irq (bit 7) */
+    set_csr(mstatus, MSTATUS_MIE);            /* global interrupt enable (bit 3) */
 
     for (;;) {
-        __asm__ volatile ("wfi");            /* sleep until the next tick */
+        __asm__ volatile ("wfi");             /* sleep until the next interrupt */
     }
     return 0;
 }

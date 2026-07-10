@@ -34,17 +34,24 @@ In the **`uart0` analyzer** (noVNC tab, port 6080) you'll see:
 
 ```
 *** FE310 timer-interrupt blink ***
-CPU will sleep in wfi and only wake on the CLINT timer.
-tick
-tick
-tick
+Setup: LED on GPIO pin 19, CLINT machine timer at 5 Hz.
+The CPU sleeps in 'wfi' and only wakes when the timer
+interrupt fires; each wake toggles the LED and prints a
+line below. Watch the [IRQ #N] counter climb.
+
+[IRQ #1] machine-timer fired -> re-armed mtimecmp, LED ON
+[IRQ #2] machine-timer fired -> re-armed mtimecmp, LED OFF
+[IRQ #3] machine-timer fired -> re-armed mtimecmp, LED ON
 ...
 ```
 
-Each `tick` is one ISR invocation — and one LED toggle. At
-`TICK_HZ = 5` that's five toggles a second. If the noVNC tab is
-unavailable, use the `CreateFileBackend` recipe from lab 04 §4
-(swap `blink.elf` → `timer.elf`).
+Each `[IRQ #N]` line is one ISR invocation — one machine-timer
+interrupt, one LED toggle. The counter proves the interrupt is
+*periodic* (re-armed each time), and the `LED ON`/`LED OFF` shows
+the pin-19 state after the toggle. At `TICK_HZ = 5` that's five
+interrupts a second. If the noVNC tab is unavailable, use the
+`CreateFileBackend` recipe from lab 04 §4 (swap `blink.elf` →
+`timer.elf`).
 
 ## 2. How the interrupt is wired
 
@@ -64,16 +71,22 @@ When `mtime` reaches `mtimecmp`, the CLINT raises `cpu@7`. Because
 
 ```c
 void __attribute__((interrupt("machine"))) timer_isr(void) {
-    set_mtimecmp(read_mtime() + INTERVAL);   // re-arm next tick
+    tick_count++;
+    set_mtimecmp(read_mtime() + INTERVAL);   // re-arm the next deadline
     GPIO_OUTPUT_VAL ^= LED_MASK;             // toggle LED
-    uart_puts("tick\n");
+    int led_on = (GPIO_OUTPUT_VAL & LED_MASK) != 0;
+    uart_puts("[IRQ #"); uart_putu(tick_count);
+    uart_puts("] machine-timer fired -> re-armed mtimecmp, LED ");
+    uart_puts(led_on ? "ON\n" : "OFF\n");
 }
 ```
 
 The `interrupt("machine")` attribute tells GCC to save/restore the
 registers and end with `mret` instead of `ret`. Re-arming
 `mtimecmp` inside the ISR is what makes the interrupt *periodic* —
-forget that line and you'd get exactly one tick.
+forget that line and you'd get exactly one `[IRQ #1]` line, then
+silence. `uart_putu` is a tiny bare-metal decimal printer (there's
+no libc `printf` here).
 
 > **Why park `mtimecmp` high before writing?** On a 32-bit core the
 > 64-bit compare is two stores. If you wrote the low half while the
@@ -106,8 +119,8 @@ Interrupts make the CPU state much more interesting to inspect.
 | `sysbus.cpu LogFunctionNames true` | Watch `main` → `wfi`, then `timer_isr` entries scroll by. |
 | `sysbus ReadDoubleWord 0x0200BFF8` | Read CLINT `mtime` low word — it's counting. |
 | `sysbus ReadDoubleWord 0x02004000` | Read `mtimecmp` low word — the next deadline. |
-| `sysbus ReadDoubleWord 0x1001200C` | GPIO `output_val`; bit 19 flips every tick. |
-| `emulation RunFor "1.0"` | Advance 1 s of sim-time; you should count ~5 `tick`s. |
+| `sysbus ReadDoubleWord 0x1001200C` | GPIO `output_val`; bit 19 flips every interrupt. |
+| `emulation RunFor "1.0"` | Advance 1 s of sim-time; you should count ~5 `[IRQ #N]` lines. |
 | `quit` | Exit Renode. |
 
 ## 5. Mini-experiments (try at least one)
@@ -133,9 +146,9 @@ Interrupts make the CPU state much more interesting to inspect.
    re-run `lab 05`. The `tick` cadence and the LED follow.
 
 4. **Break it on purpose.** Comment out the `set_mtimecmp(...)`
-   line *inside* `timer_isr` and re-run. You get exactly one `tick`,
-   then silence — proof that the periodicity comes from re-arming
-   the compare register, not from the timer itself.
+   line *inside* `timer_isr` and re-run. You get exactly one
+   `[IRQ #1]` line, then silence — proof that the periodicity comes
+   from re-arming the compare register, not from the timer itself.
 
 5. **Disable interrupts and watch it stall.** From the monitor
    while running:
