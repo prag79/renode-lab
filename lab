@@ -40,7 +40,14 @@ prepare_workdir() {
     exit 1
   fi
   mkdir -p "$dst"
-  cp -ru "$src/." "$dst/"
+  # `cp -rn` (no-clobber) NEVER overwrites an existing file in $dst.
+  # This is the right semantics for a student workdir: edits the student
+  # made in ~/work/<lab>/ survive even when the GHCR image is rebuilt
+  # (which gives /labs/ files fresh mtimes). `cp -ru` (update) would
+  # silently clobber student edits on every image rebuild — that's the
+  # bug this fixes. New files added upstream still get pulled in; to
+  # reset a lab entirely, `rm -rf ~/work/<lab>/` and re-run `lab NN`.
+  cp -rn "$src/." "$dst/"
   cd "$dst"
 }
 
