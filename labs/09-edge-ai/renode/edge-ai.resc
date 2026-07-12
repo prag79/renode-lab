@@ -1,0 +1,21 @@
+:name: Edge AI digit classifier (RISC-V)
+:description: Run an int8-quantized MLP on a bare-metal RV64 core and print predictions.
+
+mach create "edge-ai"
+machine LoadPlatformDescription @renode/edge-ai.repl
+
+# `machine Reset` reloads the firmware (macro name is <machine>.reset,
+# hyphens -> underscores => edge_ai.reset). Re-run the demo any time with
+# `machine Reset` then `start`.
+macro reset
+"""
+    sysbus LoadELF @digits.elf
+"""
+
+runMacro $reset
+
+# UART console: in GUI mode (LAB_GUI=1) this opens an analyzer window in
+# noVNC; headless, attach a file backend instead (see README section 4).
+showAnalyzer sysbus.uart
+
+start

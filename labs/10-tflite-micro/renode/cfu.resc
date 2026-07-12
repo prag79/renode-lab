@@ -1,0 +1,28 @@
+:name: CFU-Playground - TFLM with a Verilated hardware accelerator
+:description: Real TensorFlow Lite Micro on VexRiscv with a co-simulated Custom Function Unit.
+
+# This wraps Renode's BUILT-IN CFU-Playground demo. It runs real TFLM
+# software on a LiteX/VexRiscv SoC whose CPU has a Custom Function Unit
+# (CFU) -- extra "silicon" that accelerates the int8 multiply-accumulate
+# at the heart of quantized inference. Renode CO-SIMULATES that CFU with
+# Verilator (the .cs peripheral drives a Verilated C++ model).
+#
+# IMPORTANT / caveats (unlike labs 00-10, this one is NOT self-contained):
+#   * First run DOWNLOADS a prebuilt Verilated binary + TFLM software
+#     from dl.antmicro.com -> needs internet.
+#   * The Verilated binary is compiled for x86-64 Linux, so this works in
+#     a standard (x86-64) Codespace but NOT on arm64 hosts.
+#
+# The bundled script lives inside the Renode install; `@scripts/...`
+# resolves against Renode's root. It creates the machine, wires the CFU,
+# downloads the assets, and loads the software. We just start it.
+
+i @scripts/single-node/litex_vexriscv_verilated_cfu.resc
+
+start
+
+echo ""
+echo "In the UART analyzer, use the interactive menu:"
+echo "  (2) Functional CFU Test   - exercise the accelerator"
+echo "  (1) TfLM Models menu      - run a model with the CFU"
+echo "Compare cycle counts with/without the CFU to see the speedup."

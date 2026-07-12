@@ -13,7 +13,7 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Nine exercises baked into the image under `/labs/` (read-only) — eight core plus one optional multi-node capstone. On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
+- Eleven exercises baked into the image under `/labs/` (read-only) — eight core plus three optional capstones (multi-node IoT, edge AI from scratch, and real TensorFlow Lite Micro). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
@@ -28,6 +28,9 @@ lab 05                  # FE310 timer interrupts: blink from a CLINT ISR
 lab 06                  # headless regression testing with the Robot framework
 lab 07                  # model your own peripheral (custom C# timer IP)
 lab 08                  # (optional) multi-node IoT network: 3x FE310 over a shared UART bus
+lab 09                  # (optional) edge AI: run an int8 neural net on a bare-metal RISC-V core
+lab 10                  # (optional) real TensorFlow Lite Micro gesture recognition on LiteX/VexRiscv
+lab 10 cfu              # (optional) same, with a Verilated CFU hardware accelerator (x86-64 + internet)
 lab monitor             # plain Renode interactive monitor
 ```
 
@@ -114,13 +117,19 @@ gh pr create --repo prag79/renode-lab \
 | `lab 06` | Headless CI: assert firmware behaviour with a Renode Robot suite | [`labs/06-robot-testing/`](labs/06-robot-testing/) |
 | `lab 07` | Model your own peripheral in C#: a memory-mapped timer IP that interrupts the CPU | [`labs/07-custom-peripheral/`](labs/07-custom-peripheral/) |
 | `lab 08` | *(optional)* Multi-node IoT network: three FE310 machines on a shared UART hub, sensors reporting to a gateway | [`labs/08-multi-node-iot/`](labs/08-multi-node-iot/) |
+| `lab 09` | *(optional)* Edge AI / TinyML: an int8-quantized neural net classifies handwritten digits with integer-only inference on a bare-metal RV64 core | [`labs/09-edge-ai/`](labs/09-edge-ai/) |
+| `lab 10` | *(optional)* The real deal: unmodified **TensorFlow Lite Micro** (+ Zephyr) doing gesture recognition on a LiteX/VexRiscv SoC, plus an optional Verilated **CFU** hardware accelerator | [`labs/10-tflite-micro/`](labs/10-tflite-micro/) |
 
 Labs are ordered by difficulty: **00** is a 5-minute taste of MMIO on
 ARM, 01–02 run bundled images, 03 builds a minimal custom SoC, 04–05
 move to a real SiFive chip with real peripherals and interrupts, 06
 turns it all into an automated regression test, 07 has you write a
-brand-new peripheral model that the CPU talks to, and **08** *(optional)*
-runs three machines on a shared UART bus as a multi-node IoT capstone.
+brand-new peripheral model that the CPU talks to, **08** *(optional)*
+runs three machines on a shared UART bus as a multi-node IoT capstone,
+**09** *(optional)* runs a quantized neural network on a bare-metal
+core — edge AI from first principles — and **10** *(optional)* runs the
+real production stack: unmodified TensorFlow Lite Micro on RISC-V, with
+an optional hardware ML accelerator.
 
 ## Step-by-step tutorials
 
@@ -439,6 +448,71 @@ Mini-experiment: `connector Disconnect sysbus.uart1 bus` on `sensor2`
 and its reports stop reaching the gateway — the connector *is* the
 network. The same `connector` pattern scales to Ethernet, CAN, and
 true 802.15.4/BLE wireless meshes.
+
+### Lab 09 — Edge AI: a neural net on a bare-metal core (optional)
+
+Full walkthrough: [`labs/09-edge-ai/README.md`](labs/09-edge-ai/README.md).
+
+```bash
+lab 09            # cross-compiles an int8 MLP, classifies 8x8 digits on RV64
+```
+
+TinyML from first principles: a 2-layer, int8-quantized neural network
+(trained offline on mini-MNIST, ~97% accuracy) runs as **integer-only**
+arithmetic on a bare-metal RV64 core — no OS, no ML framework, no FPU.
+Each 8x8 digit is drawn as ASCII art next to the model's prediction:
+
+```
+---- sample 1 of 10 ----
+        ..##%%##%%##@@++
+        ..++%%##%%%%++
+  prediction = 4  (true = 4)  OK
+...
+==== accuracy: 10 / 10 correct ====
+```
+
+The whole "AI" is two integer matrix-vector multiplies in
+`src/digits.c`; the weights live in an auto-generated `src/model.h`.
+
+Mini-experiment: `pause` then `sysbus.cpu ExecutedInstructions` to read
+the model's inference cost, or edit a `sample_images[...]` row in
+`src/model.h` to feed it your own hand-drawn digit. Lab 10 picks up
+where this leaves off with the real production stack.
+
+### Lab 10 — Real TensorFlow Lite Micro on RISC-V (optional)
+
+Full walkthrough: [`labs/10-tflite-micro/README.md`](labs/10-tflite-micro/README.md).
+
+```bash
+lab 10            # boots Zephyr + TFLM, classifies accelerometer gestures
+lab 10 cfu        # same workload with a Verilated CFU accelerator (x86-64 + internet)
+```
+
+The industrial counterpart to lab 09: unmodified **TensorFlow Lite
+Micro** (Google's MCU ML runtime) runs inside a **Zephyr** firmware on a
+**LiteX/VexRiscv** RISC-V SoC, classifying real recorded gestures fed
+through a modelled ADXL345 accelerometer. The prebuilt firmware is
+vendored, so `lab 10` runs offline with no build:
+
+```
+Got accelerometer, label: accel-0
+RING:
+          *
+       *     *
+    ...
+SLOPE:
+        *
+       *
+    ...
+```
+
+This is real TFLM inference — compute-heavy, so the first gesture takes
+~30–60 s. `make test` regression-tests the ML output headless (lab 06
+style). `lab 10 cfu` runs the same class of workload with a **Custom
+Function Unit** hardware accelerator co-simulated in Verilator — the
+edge-AI accelerator co-design loop, no silicon required. (The CFU
+variant downloads an x86-64 Verilated binary at runtime; see the lab
+README for caveats.)
 
 ## How this works
 

@@ -1,0 +1,44 @@
+:name: TensorFlow Lite Micro - Magic Wand gesture recognition
+:description: Real TFLM running on a LiteX/VexRiscv RISC-V core, classifying accelerometer gestures.
+
+using sysbus
+
+# Prebuilt Zephyr + TensorFlow Lite Micro firmware (the "magic wand"
+# gesture model). Vendored under binaries/ so this lab runs fully
+# offline -- no build, no download. To rebuild from source, see the
+# Makefile and README section 5.
+$zephyr_elf?=@binaries/magic_wand/zephyr.elf
+
+mach create "magic-wand"
+machine LoadPlatformDescription @renode/magic-wand.repl
+
+# UART console: in GUI mode (LAB_GUI=1) this opens an analyzer window in
+# noVNC; headless, attach a file backend instead (see README section 3).
+showAnalyzer sysbus.uart
+
+macro reset
+"""
+    sysbus LoadELF $zephyr_elf
+
+    # Stream canned accelerometer gestures into the ADXL345 model. Each
+    # named .data file is one recorded motion; the numeric FeedSample
+    # lines are short "flat"/settling segments between gestures. The TFLM
+    # model reads these over I2C and classifies each as RING or SLOPE.
+    i2c.adxl345 MaxFifoDepth 1
+    i2c.adxl345 FeedSample @renode/circle.data
+    i2c.adxl345 FeedSample 0 15000 15000 128
+    i2c.adxl345 FeedSample 0 0 0 128
+    i2c.adxl345 FeedSample @renode/angle.data
+    i2c.adxl345 FeedSample 0 15000 15000 128
+    i2c.adxl345 FeedSample 0 0 0 128
+    i2c.adxl345 FeedSample @renode/circle.data
+    i2c.adxl345 FeedSample 0 15000 15000 128
+    i2c.adxl345 FeedSample 0 0 0 128
+    i2c.adxl345 FeedSample @renode/angle.data
+    i2c.adxl345 FeedSample 0 15000 15000 128
+    i2c.adxl345 FeedSample 0 0 0 128
+"""
+
+runMacro $reset
+
+start

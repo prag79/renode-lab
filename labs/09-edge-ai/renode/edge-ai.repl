@@ -1,0 +1,21 @@
+// A minimal RISC-V "edge AI" node: a single RV64 core, a chunk of RAM,
+// and a console UART. That is genuinely all a bare-metal TinyML
+// inference needs — the neural network is just integer arithmetic the
+// CPU executes from the firmware, no accelerator required.
+//
+// (See the README appendix for the other end of the spectrum: a
+//  VexRiscv core with a Custom Function Unit that accelerates real
+//  TensorFlow Lite Micro kernels.)
+
+cpu: CPU.RiscV64 @ sysbus
+    cpuType: "rv64imac_zicsr_zifencei"
+    privilegeArchitecture: PrivilegeArchitecture.Priv1_10
+    timeProvider: empty
+
+// 64 MiB RAM: far more than the ~3 KiB model needs, so students can
+// grow the network in the experiments without touching this file.
+ram: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000000
+
+// 16550-compatible UART: the inference results are printed here.
+uart: UART.NS16550 @ sysbus 0x10000000
