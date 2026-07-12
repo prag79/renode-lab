@@ -88,7 +88,14 @@ COPY --chown=student:student labs/ /labs/
 COPY lab            /usr/local/bin/lab
 COPY entrypoint.sh  /usr/local/bin/entrypoint.sh
 COPY sync-labs.sh   /usr/local/bin/sync-labs.sh
-RUN chmod +x /usr/local/bin/lab /usr/local/bin/entrypoint.sh /usr/local/bin/sync-labs.sh
+COPY lab.sh         /etc/profile.d/lab.sh
+RUN chmod +x /usr/local/bin/lab /usr/local/bin/entrypoint.sh /usr/local/bin/sync-labs.sh && \
+    chmod 0644 /etc/profile.d/lab.sh && \
+    # Source the lab() wrapper in interactive (non-login) shells too, so
+    # the shell lands in ~/work/<lab> after Renode quits. Login shells
+    # already get /etc/profile.d/*.sh via /etc/profile.
+    printf '\n# Renode labs: define lab() wrapper (cd into ~/work/<lab> after a run)\nif [ -f /etc/profile.d/lab.sh ]; then . /etc/profile.d/lab.sh; fi\n' \
+      >> /home/student/.bashrc
 
 USER student
 WORKDIR /home/student/work
