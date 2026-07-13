@@ -1,0 +1,3 @@
+# Azure IoT Hub backend for the bridge (device SDK).
+# Install with:  pip install -r tools/requirements-azure.txt
+azure-iot-device>=2.12

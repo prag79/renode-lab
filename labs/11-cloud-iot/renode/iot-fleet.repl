@@ -1,0 +1,25 @@
+// Fleet variant of lab 11: one RV64 "IoT node" platform loaded into
+// several machines (a gateway + N sensors). Same as iot-cloud.repl but
+// with a SECOND UART, so the gateway can listen on a shared bus AND
+// forward to a separate cloud uplink at the same time.
+//
+//   uart0 @ 0x10000000  gateway's cloud UPLINK (host socket) / sensor console
+//   uart1 @ 0x10001000  shared BUS ("radio"): wired to a UARTHub in the
+//                        .resc so every byte one node sends is broadcast
+//                        to the uart1 RX of the others.
+//
+// This is lab 08's multi-node bus married to lab 11's cloud bridge: many
+// dumb edge nodes, one gateway with an internet uplink, credentials on
+// the host only.
+
+cpu: CPU.RiscV64 @ sysbus
+    cpuType: "rv64imac_zicsr_zifencei"
+    privilegeArchitecture: PrivilegeArchitecture.Priv1_10
+    timeProvider: empty
+
+ram: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000000
+
+uart0: UART.NS16550 @ sysbus 0x10000000
+
+uart1: UART.NS16550 @ sysbus 0x10001000

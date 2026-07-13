@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Renode IoT — live telemetry</title>
+<!-- Chart.js from CDN (needs internet in the browser; the Codespaces
+     browser has it). Swap for a vendored copy if you need offline. -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 24px;
+         background: #0f1115; color: #e6e6e6; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #8a94a6; font-size: 13px; margin-bottom: 20px; }
+  .cards { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .card { background: #171a21; border: 1px solid #232833; border-radius: 12px;
+          padding: 16px 20px; min-width: 120px; }
+  .card .label { color: #8a94a6; font-size: 12px; text-transform: uppercase;
+                 letter-spacing: .05em; }
+  .card .value { font-size: 30px; font-weight: 700; margin-top: 4px; }
+  /* Per-device summary chips (one per device seen on the stream). */
+  .devices { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .chip { background: #171a21; border: 1px solid #232833; border-radius: 10px;
+          padding: 10px 14px; min-width: 150px; }
+  .chip .name { font-size: 13px; font-weight: 600; display: flex;
+                align-items: center; gap: 7px; }
+  .chip .name .swatch { width: 10px; height: 10px; border-radius: 50%; }
+  .chip .reading { color: #c7cdda; font-size: 13px; margin-top: 6px; }
+  .chip .reading b { color: #e6e6e6; }
+  .wrap { background: #171a21; border: 1px solid #232833; border-radius: 12px;
+          padding: 16px; }
+  canvas { max-height: 420px; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+         background: #f04a4a; margin-right: 6px; vertical-align: middle; }
+  .live { color: #37c871; }
+</style>
+</head>
+<body>
+  <h1>Renode IoT — live telemetry</h1>
+  <div class="sub"><span class="dot"></span><span id="status">connecting…</span>
+    &nbsp;•&nbsp; simulated RISC-V sensor node(s) → host bridge → this dashboard</div>
+
+  <div class="cards">
+    <div class="card"><div class="label">Devices</div>
+      <div class="value" id="devcount">0</div></div>
+    <div class="card"><div class="label">Messages</div>
+      <div class="value" id="count">0</div></div>
+  </div>
+
+  <!-- One chip per device, filled in live from the telemetry stream. -->
+  <div class="devices" id="devices"></div>
+
+  <div class="wrap"><canvas id="chart"></canvas></div>
+
+<script>
+// A stable color per device, assigned in first-seen order. Each device
+// gets one solid TEMP line (left axis) and one dashed HUMIDITY line
+// (right axis) in the same hue, so a multi-node `lab 11 fleet` run draws
+// a separate pair of series per sensor instead of one merged line.
+const PALETTE = ['#f0864a', '#4a9df0', '#37c871', '#f0c24a',
+                 '#b06af0', '#f04a97', '#4af0d0', '#a0d24a'];
+const deviceColor = new Map();          // device -> hex color
+function colorFor(device) {
+  if (!deviceColor.has(device))
+    deviceColor.set(device, PALETTE[deviceColor.size % PALETTE.length]);
+  return deviceColor.get(device);
+}
+
+// How many recent samples to plot per device (keeps the chart readable).
+const WINDOW = 60;
+
+const ctx = document.getElementById('chart');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: { datasets: [] },
+  options: {
+    animation: false, responsive: true,
+    parsing: false,                     // we pass {x, y} points directly
+    interaction: { mode: 'nearest', intersect: false },
+    scales: {
+      x: { type: 'linear',
+           ticks: { color: '#8a94a6', maxTicksLimit: 8,
+                    callback: v => new Date(v).toLocaleTimeString() } },
+      y:  { type: 'linear', position: 'left',
+            title: { display: true, text: '°C', color: '#8a94a6' },
+            ticks: { color: '#8a94a6' } },
+      y1: { type: 'linear', position: 'right',
+            title: { display: true, text: '%', color: '#8a94a6' },
+            ticks: { color: '#8a94a6' }, grid: { drawOnChartArea: false } },
+    },
+    plugins: { legend: { labels: { color: '#c7cdda', boxWidth: 12 } } },
+  }
+});
+
+function renderChips(byDevice) {
+  const el = document.getElementById('devices');
+  const names = [...byDevice.keys()].sort();
+  el.innerHTML = names.map(name => {
+    const rows = byDevice.get(name);
+    const last = rows[rows.length - 1];
+    const c = colorFor(name);
+    return `<div class="chip">
+      <div class="name"><span class="swatch" style="background:${c}"></span>${name}</div>
+      <div class="reading">temp <b>${last.temp_c ?? '—'}</b> °C&nbsp;·&nbsp;` +
+      `hum <b>${last.humidity ?? '—'}</b> %&nbsp;·&nbsp;seq ${last.seq ?? '—'}</div>
+    </div>`;
+  }).join('');
+}
+
+function rebuildDatasets(byDevice) {
+  const datasets = [];
+  for (const [name, rows] of byDevice) {
+    const c = colorFor(name);
+    const view = rows.slice(-WINDOW);
+    datasets.push({
+      label: `${name} temp`, yAxisID: 'y', borderColor: c,
+      backgroundColor: c, tension: .3, pointRadius: 0, borderWidth: 2,
+      data: view.map(d => ({ x: d.ts, y: d.temp_c })),
+    });
+    datasets.push({
+      label: `${name} hum`, yAxisID: 'y1', borderColor: c,
+      backgroundColor: c, borderDash: [5, 4], tension: .3,
+      pointRadius: 0, borderWidth: 1.5,
+      data: view.map(d => ({ x: d.ts, y: d.humidity })),
+    });
+  }
+  chart.data.datasets = datasets;
+  chart.update();
+}
+
+async function tick() {
+  try {
+    const r = await fetch('/data.json', { cache: 'no-store' });
+    const rows = await r.json();
+
+    const status = document.getElementById('status');
+    status.textContent = rows.length ? 'live' : 'waiting for telemetry…';
+    status.className = rows.length ? 'live' : '';
+
+    // Group samples by device (preserve first-seen order for colors).
+    const byDevice = new Map();
+    for (const d of rows) {
+      const name = d.device ?? 'unknown';
+      if (!byDevice.has(name)) byDevice.set(name, []);
+      byDevice.get(name).push(d);
+    }
+
+    document.getElementById('devcount').textContent = byDevice.size;
+    document.getElementById('count').textContent = rows.length;
+    renderChips(byDevice);
+    rebuildDatasets(byDevice);
+  } catch (e) {
+    document.getElementById('status').textContent = 'bridge not reachable';
+    document.getElementById('status').className = '';
+  }
+}
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>

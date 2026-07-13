@@ -1,0 +1,18 @@
+// A minimal RISC-V "IoT sensor node": one RV64 core, RAM, and a console
+// UART. The firmware emits JSON telemetry on the UART; a host-side
+// bridge (tools/bridge.py) reads it over a TCP socket and forwards it to
+// a real cloud IoT broker (AWS IoT Core / Azure IoT Hub) + a dashboard.
+//
+// This is the classic edge -> gateway -> cloud pattern: the device stays
+// simple and deterministic (no TCP/IP or TLS on the MCU), and the
+// gateway handles connectivity and credentials.
+
+cpu: CPU.RiscV64 @ sysbus
+    cpuType: "rv64imac_zicsr_zifencei"
+    privilegeArchitecture: PrivilegeArchitecture.Priv1_10
+    timeProvider: empty
+
+ram: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000000
+
+uart: UART.NS16550 @ sysbus 0x10000000

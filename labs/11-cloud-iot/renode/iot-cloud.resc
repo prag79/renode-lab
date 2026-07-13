@@ -1,0 +1,28 @@
+:name: Renode IoT node -> cloud bridge
+:description: Stream JSON telemetry from a simulated RISC-V node over TCP for the host bridge to forward to AWS IoT Core / Azure IoT Hub.
+
+mach create "iot-node"
+machine LoadPlatformDescription @renode/iot-cloud.repl
+
+# Expose the device UART on TCP localhost:3456. The host-side bridge
+# (tools/bridge.py) connects here, reads the JSON telemetry lines, and
+# forwards them to the cloud + a dashboard. `false` = don't emit the
+# extra config bytes some terminals prepend (we want raw UART text).
+emulation CreateServerSocketTerminal 3456 "cloudlink" false
+connector Connect sysbus.uart cloudlink
+
+macro reset
+"""
+    sysbus LoadELF @telemetry.elf
+"""
+runMacro $reset
+
+# Start streaming immediately. The socket buffers until the bridge
+# connects, so you can start the bridge before or after this.
+start
+
+echo ""
+echo "IoT node streaming JSON telemetry on tcp://localhost:3456"
+echo "In a SECOND terminal run the bridge, e.g.:"
+echo "    cd ~/work/11-cloud-iot && python3 tools/bridge.py"
+echo "(add --cloud aws  or  --cloud azure  to forward to a real broker)"

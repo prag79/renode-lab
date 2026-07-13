@@ -1,0 +1,43 @@
+:name: Multi-node IoT fleet -> gateway -> cloud bridge
+:description: Two RISC-V sensor nodes broadcast JSON on a shared bus; a gateway relays it out a TCP uplink for the host bridge to forward to AWS IoT Core / Azure IoT Hub.
+
+# The shared broadcast medium (as in lab 08). A UART hub relays every
+# byte one connected node transmits to the RX of all the OTHERS -- a
+# stand-in for a single radio channel or a multi-drop bus.
+emulation CreateUARTHub "bus"
+
+# The gateway's cloud UPLINK. tools/bridge.py connects here, reads the
+# JSON telemetry the gateway relays, and forwards it to the cloud + the
+# dashboard. `false` = raw UART bytes, no terminal config prefix.
+emulation CreateServerSocketTerminal 3456 "cloudlink" false
+
+# ---------------- Node 0: the gateway ----------------
+mach create "gateway"
+machine LoadPlatformDescription @renode/iot-fleet.repl
+sysbus LoadELF @gateway.elf
+connector Connect sysbus.uart1 bus          # listen on the shared bus
+connector Connect sysbus.uart0 cloudlink    # forward out the cloud uplink
+
+# ---------------- Node 1: sensor ----------------
+mach create "sensor1"
+machine LoadPlatformDescription @renode/iot-fleet.repl
+sysbus LoadELF @sensor1.elf
+connector Connect sysbus.uart1 bus
+showAnalyzer sysbus.uart0
+
+# ---------------- Node 2: sensor ----------------
+mach create "sensor2"
+machine LoadPlatformDescription @renode/iot-fleet.repl
+sysbus LoadELF @sensor2.elf
+connector Connect sysbus.uart1 bus
+showAnalyzer sysbus.uart0
+
+# Starting the emulation starts every machine AND the hub together, so
+# all three nodes advance on one shared simulated clock.
+start
+
+echo ""
+echo "IoT fleet running: 2 sensors -> gateway -> tcp://localhost:3456"
+echo "In a SECOND terminal run the bridge, e.g.:"
+echo "    cd ~/work/11-cloud-iot && python3 tools/bridge.py"
+echo "(add --cloud aws  or  --cloud azure  to forward to a real broker)"

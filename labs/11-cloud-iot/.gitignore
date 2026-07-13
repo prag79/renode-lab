@@ -1,0 +1,12 @@
+# Never commit secrets or build artifacts.
+.env
+certs/
+*.pem
+*.crt
+*.key
+telemetry.elf
+gateway.elf
+sensor*.elf
+src/*.o
+fleet*.o
+__pycache__/
