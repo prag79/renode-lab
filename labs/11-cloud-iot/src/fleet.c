@@ -128,7 +128,7 @@ int main(void) {
 
     /* Stagger start-up so nodes don't transmit in lock-step and clobber
      * each other on the shared medium every single cycle. */
-    delay(2000000U * NODE_ID);
+    delay(600000U * NODE_ID);
 
     uint32_t seq = 0;
     for (;;) {
@@ -152,7 +152,9 @@ int main(void) {
         uart_putc(UART0_BASE, '\n');
 
         seq++;
-        delay(6000000U);
+        /* Inter-message pacing. Lower this for a faster stream (or raise
+         * it to model a low-power sensor that reports less often). */
+        delay(1500000U);
     }
     return 0;
 }

@@ -74,6 +74,12 @@ Open **http://localhost:8000** (in Codespaces, the port is
 auto-forwarded — click the browser prompt or the Ports tab) to watch
 temperature and humidity update live.
 
+> If port 8000 is already taken (usually a previous `bridge.py` still
+> running — `pkill -f tools/bridge.py`), the bridge automatically picks
+> the next free port and prints the real URL in its `[dashboard]` line.
+> You can also force one with `--dashboard-port <N>` or skip it with
+> `--no-dashboard`.
+
 ## 2. What just happened
 
 The device and the cloud are deliberately **decoupled by a socket**:
@@ -159,22 +165,110 @@ AWS IoT Core speaks **MQTT over mutual TLS** on port 8883. You'll need a
 
 ## 5. Forward to Azure IoT Hub (`--cloud azure`)
 
-Azure IoT Hub uses the **device SDK** with a per-device connection
-string.
+Azure IoT Hub authenticates each device with a **per-device connection
+string** (symmetric key). The bridge uses `azure-iot-device` to connect
+over MQTT and publish your telemetry as device-to-cloud messages.
 
-1. **Create a hub + device.** Azure portal → *IoT Hub* (free tier) →
-   *Devices → Add device* (`renode-sim-01`). Open the device → copy its
-   **Primary connection string**.
-2. **Set it and run:**
+You need three things from Azure, in order: **(A)** an IoT hub, **(B)** a
+registered device, **(C)** that device's connection string. Two paths
+below — the **Azure CLI** (fastest, copy-paste) or the **portal** (UI).
+Everything fits in the **Free (F1)** tier (one free hub per subscription,
+8,000 messages/day — plenty for this lab).
 
-   ```bash
-   pip install -r tools/requirements-azure.txt
-   export AZURE_IOT_CONNECTION_STRING='HostName=<hub>.azure-devices.net;DeviceId=renode-sim-01;SharedAccessKey=<key>'
-   python3 tools/bridge.py --cloud azure
-   ```
+### 5a. Azure CLI (recommended)
 
-3. **Verify.** `az iot hub monitor-events --hub-name <hub>` (Azure CLI +
-   the `azure-iot` extension), or watch the hub's *Metrics* blade.
+Use the [Azure Cloud Shell](https://shell.azure.com) (nothing to install)
+or a local `az`. Pick globally-unique lowercase names for the hub.
+
+```bash
+# One-time: add the IoT extension (auto-installs on first use anyway).
+az extension add --upgrade --name azure-iot
+
+# (A) Resource group + IoT hub in the FREE tier.
+#     F1 REQUIRES --partition-count 2 (the default of 4 is rejected on free).
+az group create --name renode-lab-rg --location eastus
+az iot hub create \
+    --resource-group renode-lab-rg \
+    --name <YOUR-HUB-NAME> \
+    --sku F1 --partition-count 2          # ~2-3 min to provision
+
+# (B) Register the device (must match the DeviceId your firmware sends;
+#     the lab streams device "renode-sim-01").
+az iot hub device-identity create \
+    --device-id renode-sim-01 --hub-name <YOUR-HUB-NAME>
+
+# (C) Print the device connection string (this is the secret the bridge needs).
+az iot hub device-identity connection-string show \
+    --device-id renode-sim-01 --hub-name <YOUR-HUB-NAME> -o tsv
+```
+
+The last command prints exactly the value below — copy it verbatim:
+
+```
+HostName=<YOUR-HUB-NAME>.azure-devices.net;DeviceId=renode-sim-01;SharedAccessKey=<base64-key>
+```
+
+### 5b. Azure portal (UI alternative)
+
+1. **Create the hub.** Portal → **Create a resource** → search **IoT Hub**
+   → **Create**. Choose your subscription and resource group, a unique
+   **IoT hub name**, and a region. On the **Management** (a.k.a. *Tier*)
+   tab set **Pricing and scale tier → Free (F1)**. **Review + create**.
+2. **Register the device.** Open the hub → **Device management → Devices**
+   → **+ Add device**. Enter **Device ID** `renode-sim-01`, leave
+   *Authentication type* = **Symmetric key** with *auto-generate keys*
+   checked, **Save**.
+3. **Copy the connection string.** **Device management → Devices** → click
+   `renode-sim-01` → copy **Primary connection string** (click the eye
+   icon to reveal, or the copy button). Same `HostName=…;DeviceId=…;
+   SharedAccessKey=…` format as above.
+
+### 5c. Point the bridge at your hub
+
+```bash
+pip install -r tools/requirements-azure.txt
+export AZURE_IOT_CONNECTION_STRING='HostName=<YOUR-HUB-NAME>.azure-devices.net;DeviceId=renode-sim-01;SharedAccessKey=<base64-key>'
+python3 tools/bridge.py --cloud azure
+```
+
+On success the bridge prints `[azure] connected to IoT Hub` and forwards
+every telemetry line as a device-to-cloud message.
+
+### 5d. Verify it's arriving
+
+Run this in the **[Azure Cloud Shell](https://shell.azure.com)** (the `>_`
+icon in the Azure portal, or [shell.azure.com](https://shell.azure.com)) —
+it's already signed in to your subscription and auto-installs the
+`azure-iot` extension, so no local setup is needed:
+
+```bash
+az iot hub monitor-events --output table \
+    --device-id renode-sim-01 --hub-name <YOUR-HUB-NAME>
+```
+
+You'll see your simulated node's JSON (`temp_c`, `humidity`, `seq`) stream
+in. (You can also watch the hub's **Metrics** blade → *Telemetry messages
+sent* in the portal.)
+
+> **Where to run `az`.** All the `az ...` commands in this section
+> (§5a and §5d) are meant for the **Azure Cloud Shell**, not the
+> Codespace — Cloud Shell has the CLI, the `azure-iot` extension, and
+> your Azure login already set up. `monitor-events` only *observes* the
+> hub, so it can run anywhere with Azure access; it does **not** need to
+> be on the same machine as `bridge.py` (which stays in the Codespace).
+> To run `az` from the Codespace instead, you'd first install the CLI and
+> `az login --use-device-code`.
+
+> **Device ID must match.** The connection string's `DeviceId` has to be
+> the device you registered, and Azure rejects messages whose device
+> doesn't exist. The single-node firmware sends `renode-sim-01`; for
+> `lab 11 fleet` (which sends `renode-sim-01` **and** `renode-sim-02`
+> through one gateway), register **both** device IDs, or change the
+> sensor IDs in `src/fleet.c` to match what you registered.
+
+> **Clean up to avoid surprises.** Even the free hub counts against your
+> one-free-hub-per-subscription limit; delete it when done:
+> `az group delete --name renode-lab-rg`.
 
 > **Credentials are never hard-coded or committed.** The bridge reads
 > them from env vars / `certs/`, and `.gitignore` blocks `.env`, `certs/`

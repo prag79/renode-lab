@@ -25,6 +25,7 @@ Examples:
     python3 tools/bridge.py --cloud azure        # + Azure IoT Hub
 """
 import argparse
+import errno
 import json
 import os
 import socket
@@ -75,12 +76,32 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def start_dashboard(port):
-    srv = ThreadingHTTPServer(("0.0.0.0", port), DashboardHandler)
-    t = threading.Thread(target=srv.serve_forever, daemon=True)
-    t.start()
-    print(f"[dashboard] live chart at http://localhost:{port}")
-    return srv
+def start_dashboard(port, attempts=10):
+    """Serve the dashboard, auto-falling forward if the port is taken.
+
+    A leftover bridge (or anything else) holding the port raises
+    EADDRINUSE. Rather than crash the whole tool, try the next few ports,
+    and if none are free, warn and carry on WITHOUT the dashboard so the
+    telemetry reader + cloud forwarding still run.
+    """
+    for p in range(port, port + attempts):
+        try:
+            srv = ThreadingHTTPServer(("0.0.0.0", p), DashboardHandler)
+        except OSError as e:
+            if e.errno == errno.EADDRINUSE:
+                continue
+            raise
+        t = threading.Thread(target=srv.serve_forever, daemon=True)
+        t.start()
+        if p != port:
+            print(f"[dashboard] port {port} busy; using {p} instead")
+        print(f"[dashboard] live chart at http://localhost:{p}")
+        return srv
+
+    print(f"[dashboard] ports {port}-{port + attempts - 1} all in use "
+          f"(a previous bridge may still be running: 'pkill -f tools/bridge.py'). "
+          f"Continuing without the dashboard.")
+    return None
 
 
 # --------------------------------------------------------------------------
