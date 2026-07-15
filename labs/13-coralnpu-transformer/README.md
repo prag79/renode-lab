@@ -249,7 +249,7 @@ mailbox/ABI is unchanged, so `host.c` and the `.resc` need no edits.
 |---|---|
 | `peripherals` | The board: `cpu`, `ram`, `uart`, `actuator`, Coral NPU. |
 | `sysbus.cpu ExecutedInstructions` | Host instructions retired so far. |
-| `sysbus.CoralNPU_RVV ExecutedInstructions` | Instructions the NPU ran on its last inference. |
+| `sysbus.npu ExecutedInstructions` | Instructions the Coral NPU has run (cumulative). |
 | `sysbus ReadDoubleWord 0x90000000` | Last commanded skill id at the actuator. |
 | `sysbus ReadDoubleWord 0xE00010100` | The NPU's predicted intent in DTCM (`MB_INTENT`). |
 | `logLevel 0 sysbus.actuator` | Log every actuator register access. |

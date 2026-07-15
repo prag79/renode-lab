@@ -46,11 +46,20 @@ if not loaded:
 # official Coral demo. On the marker lines the firmware prints, snapshot
 # each core's ExecutedInstructions and print the delta so you can compare
 # the policy's matmul cost on the host CPU against the Coral NPU.
+#
+# NOTE on the mechanism: `AddLineHook` is a Monitor *extension* method on
+# IUART, not an instance method -- calling `uart.AddLineHook(...)` from
+# Python fails ("'NS16550' object has no attribute 'AddLineHook'"). Each
+# hook also runs in its own isolated Python engine, so a hook string cannot
+# see functions defined here. The supported fix (renode #680) is to install
+# the hook from *this* python engine via the static extension method,
+# passing our predicate + callback objects directly -- they then share this
+# engine's state (_snap).
 python """
-_CORES = [
-    ("host cpu",  "sysbus.cpu"),
-    ("Coral NPU", "sysbus.CoralNPU_RVV"),
-]
+machine = monitor.Machine
+uart = machine["sysbus.uart"]
+_CORES = [("host cpu", "sysbus.cpu"), ("Coral NPU", "sysbus.npu")]
+_snap = {}
 
 def _read(path):
     try:
@@ -59,34 +68,29 @@ def _read(path):
         return None
 
 def coral_reset(line=None):
-    snap = coral_reset.snap
-    snap.clear()
+    _snap.clear()
     for _, path in _CORES:
         v = _read(path)
         if v is not None:
-            snap[path] = v
+            _snap[path] = v
 
 def coral_print(line=None):
-    snap = coral_reset.snap
     print "\n--- executed instructions (this phase) ---"
     for label, path in _CORES:
         cur = _read(path)
         if cur is None:
             continue
-        if path == "sysbus.CoralNPU_RVV":
-            print "  %-12s %d  (NPU last run)" % (label + ":", cur)
+        if path == "sysbus.npu":
+            print "  %-11s %d  (NPU, cumulative)" % (label + ":", cur)
         else:
-            base = snap.get(path, cur)
-            print "  %-12s %d" % (label + ":", cur - base)
+            print "  %-11s %d" % (label + ":", cur - _snap.get(path, cur))
     print "------------------------------------------"
 
-coral_reset.snap = {}
-machine = monitor.Machine
-uart = machine['sysbus.uart']
-uart.AddLineHook(lambda line: '# host_policy_start' in line, coral_reset)
-uart.AddLineHook(lambda line: '# host_policy_done'  in line, coral_print)
-uart.AddLineHook(lambda line: '# npu_infer_start' in line, coral_reset)
-uart.AddLineHook(lambda line: '# npu_infer_done'  in line, coral_print)
+_add = Antmicro.Renode.Hooks.UartHooksExtensions.AddLineHook
+_add(uart, lambda line: '# host_policy_start' in line, coral_reset)
+_add(uart, lambda line: '# host_policy_done'  in line, coral_print)
+_add(uart, lambda line: '# npu_infer_start'   in line, coral_reset)
+_add(uart, lambda line: '# npu_infer_done'    in line, coral_print)
 """
 
 macro reset
