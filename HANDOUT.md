@@ -1,6 +1,6 @@
 # Student Handout — Renode Lab on GitHub Codespaces
 
-Welcome. Over the next few hours you will simulate thirteen different
+Welcome. Over the next few hours you will simulate fourteen different
 embedded systems — from a 5-minute MMIO taste on a bare-metal ARM
 Cortex-A9, through a Cortex-M4 microcontroller and a multi-core
 RISC-V Linux SoC, all the way to a SiFive FE310 with timer interrupts,
@@ -171,7 +171,7 @@ lab list
 You should see all the available labs:
 
 ```
-Available labs (00–07 core, 08–12 optional capstones):
+Available labs (00–07 core, 08–13 optional capstones):
   00       - bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: lab demo)
   01       - bundled STM32F4 demo (sanity check)
   02       - Linux on SiFive HiFive Unleashed (RISC-V)
@@ -185,13 +185,15 @@ Available labs (00–07 core, 08–12 optional capstones):
   10       - (optional) real TensorFlow Lite Micro: gesture recognition on LiteX/VexRiscv
   11       - (optional) cloud IoT: stream JSON telemetry to AWS IoT Core / Azure IoT Hub
   12       - (optional) edge-AI robot: on-device int8 model turns commands into robot skill plans
+  13       - (optional) transformer robot: language policy on a Google Coral NPU (CPU.CoralNPU); needs Renode NIGHTLY
   monitor  - plain Renode interactive monitor
 ```
 
-Labs **08–12** are optional capstones — multi-node IoT, edge AI from
-scratch, production TensorFlow Lite Micro, cloud telemetry, and an
-on-device robot controller. You don't need them for the sanity check
-below; run them after labs 00–07 when you're ready.
+Labs **08–13** are optional capstones — multi-node IoT, edge AI from
+scratch, production TensorFlow Lite Micro, cloud telemetry, an on-device
+robot controller, and a transformer offloaded to a Google Coral NPU. You
+don't need them for the sanity check below; run them after labs 00–07 when
+you're ready.
 
 Then run lab 01:
 
@@ -236,6 +238,7 @@ experiments, and clean exit.
 | **10** | ~45 min | *(optional)* Real TensorFlow Lite Micro on LiteX/VexRiscv: gesture recognition with a prebuilt Zephyr firmware; `lab 10 cfu` adds a Verilated hardware accelerator. | [`labs/10-tflite-micro/README.md`](labs/10-tflite-micro/README.md) |
 | **11** | ~60 min | *(optional)* Cloud IoT: a RISC-V node streams JSON telemetry to a host gateway bridge that forwards to AWS IoT Core / Azure IoT Hub; `lab 11 fleet` adds a multi-node sensor bus. | [`labs/11-cloud-iot/README.md`](labs/11-cloud-iot/README.md) |
 | **12** | ~60 min | *(optional)* Edge-AI robot: an on-device int8 intent model turns natural-language commands into low-level skill plans and drives a custom C# actuator — fully offline. | [`labs/12-edge-ai-robot/README.md`](labs/12-edge-ai-robot/README.md) |
+| **13** | ~75 min | *(optional)* Transformer robot on a **Google Coral NPU**: a bare-metal RV64 controller tokenizes a command, runs a real int8 transformer policy to pick a robot intent, expands it into skills, and drives a memory-mapped actuator — offloading the policy's matmuls to Renode's `CPU.CoralNPU` and comparing per-core instruction counts. **Needs Renode nightly** (installed alongside stable). | [`labs/13-coralnpu-transformer/README.md`](labs/13-coralnpu-transformer/README.md) |
 
 Do them **in order** — they increase in difficulty. Lab 00 is a 5-minute
 sanity check that the toolchain works; 01–02 then run bundled images,
@@ -245,10 +248,12 @@ regression test, and 07 has you write a brand-new peripheral model that
 the CPU talks to. Each one introduces a concept the next assumes (the
 three Renode primitives `mach create`, `LoadPlatformDescription`,
 `LoadELF` + `start`; then real peripherals, interrupts, and automated
-testing). Labs **08–12** are **optional capstones** — multi-node IoT,
+testing). Labs **08–13** are **optional capstones** — multi-node IoT,
 edge AI from scratch, production TensorFlow Lite Micro, cloud telemetry,
-and an on-device robot controller that composes skills from a tiny
-learned model.
+an on-device robot controller that composes skills from a tiny learned
+model, and an end-to-end transformer robot whose policy matmuls are
+offloaded to a Google Coral NPU (lab 13 uses Renode nightly, installed
+alongside the stable release the others use).
 
 ## 4. Where your edits live
 
@@ -427,7 +432,7 @@ cheat sheet):
 Open lab:           click the badge in the README
 List labs:          lab list                              (banner runs this on attach)
 Quick taste:        lab 00      (a.k.a. lab demo)         5-min ARM MMIO warm-up
-Optional capstones: lab 08 | lab 09 | lab 10 | lab 11 | lab 12
+Optional capstones: lab 08 | lab 09 | lab 10 | lab 11 | lab 12 | lab 13 (nightly)
 Verify install:     lab list && lab 01 -> start -> sysbus.cpu PC -> quit
 Edit + re-run:      edit ~/work/<lab>/..., then lab NN
 Read UART:          (in monitor) sysbus.uartN CreateFileBackend @/tmp/uartN.log true

@@ -13,7 +13,7 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Thirteen exercises baked into the image under `/labs/` (read-only) — eight core plus five optional capstones (multi-node IoT, edge AI from scratch, real TensorFlow Lite Micro, cloud IoT, and an edge-AI robot controller). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
+- Fourteen exercises baked into the image under `/labs/` (read-only) — eight core plus six optional capstones (multi-node IoT, edge AI from scratch, real TensorFlow Lite Micro, cloud IoT, an edge-AI robot controller, and a transformer robot on a Google Coral NPU). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
@@ -34,6 +34,7 @@ lab 10 cfu              # (optional) same, with a Verilated CFU hardware acceler
 lab 11                  # (optional) cloud IoT: stream JSON telemetry to AWS IoT Core / Azure IoT Hub
 lab 11 fleet            # (optional) multi-node sensors -> gateway -> cloud (labs 08 + 11 combined)
 lab 12                  # (optional) edge-AI robot: on-device int8 model turns commands into robot skill plans
+lab 13                  # (optional) transformer robot: language policy on a Google Coral NPU (CPU.CoralNPU); needs Renode NIGHTLY
 lab monitor             # plain Renode interactive monitor
 ```
 
@@ -124,6 +125,7 @@ gh pr create --repo prag79/renode-lab \
 | `lab 10` | *(optional)* The real deal: unmodified **TensorFlow Lite Micro** (+ Zephyr) doing gesture recognition on a LiteX/VexRiscv SoC, plus an optional Verilated **CFU** hardware accelerator | [`labs/10-tflite-micro/`](labs/10-tflite-micro/) |
 | `lab 11` | *(optional)* Cloud IoT: a simulated RISC-V node streams JSON telemetry over a socket to a host **gateway bridge** that forwards it to **AWS IoT Core / Azure IoT Hub** + a live dashboard; `lab 11 fleet` adds lab 08's multi-node bus (2 sensors → gateway → cloud) | [`labs/11-cloud-iot/`](labs/11-cloud-iot/) |
 | `lab 12` | *(optional)* Edge-AI robot: a bare-metal RV64 controller runs an **on-device int8 intent model** that turns a natural-language command into a plan of low-level **robot skills** and drives a memory-mapped actuator — the LFM2.5/Jetson robotics architecture at TinyML scale, fully offline | [`labs/12-edge-ai-robot/`](labs/12-edge-ai-robot/) |
+| `lab 13` | *(optional)* Transformer robot on a **Google Coral NPU**: a bare-metal RV64 controller tokenizes a command, runs a real **int8 transformer policy** to pick a robot intent, expands it into low-level skills, and drives a memory-mapped actuator — offloading the policy's matmuls to Renode's `CPU.CoralNPU` over its CSR/TCM interface and comparing per-core instruction counts — **needs Renode nightly** (installed side-by-side with stable) | [`labs/13-coralnpu-transformer/`](labs/13-coralnpu-transformer/) |
 
 Labs are ordered by difficulty: **00** is a 5-minute taste of MMIO on
 ARM, 01–02 run bundled images, 03 builds a minimal custom SoC, 04–05
@@ -139,7 +141,12 @@ node's telemetry off-chip: a host gateway bridge forwards JSON to AWS
 IoT Core / Azure IoT Hub, closing the edge → gateway → cloud loop, and
 **12** *(optional)* runs an on-device int8 model as a robot's decision
 layer — command → skill plan → actuator — the edge-AI-robot pattern,
-fully offline.
+fully offline, and **13** *(optional)* is an end-to-end **transformer robot** on a
+**Google Coral NPU**: a bare-metal RV64 controller turns a command into an
+intent (via an int8 transformer policy) into a skill plan into actuator
+writes, offloading the policy's matmuls to the `CPU.CoralNPU` accelerator
+over MMIO and comparing per-core instruction counts (this lab uses Renode
+nightly, installed alongside the stable release the other labs use).
 
 ## Step-by-step tutorials
 
@@ -583,6 +590,41 @@ hardware) and leaves the GPU-class model + real skills to actual silicon.
 It composes cleanly with the earlier labs: swap the classifier for a real
 quantized model (lab 09/10), the MMIO window for a modeled motor
 controller (lab 07), or add sensor nodes on a bus (lab 08).
+
+### Lab 13 — Transformer robot on a Google Coral NPU (optional)
+
+Full walkthrough: [`labs/13-coralnpu-transformer/README.md`](labs/13-coralnpu-transformer/README.md).
+
+```bash
+lab 13            # transformer robot: command -> intent -> skills -> actuator, on a Coral NPU
+make test         # headless regression (uses renode-test-nightly)
+```
+
+An **end-to-end robot controller** (lab 12's shape, with a transformer
+brain and a hardware accelerator). A bare-metal RV64 "host" tokenizes a
+natural-language command, runs a real **int8 transformer policy** (embedding
+→ self-attention → feed-forward → classifier, all integer math, no FPU) to
+pick a robot **intent**, expands it into low-level **skills**, and drives a
+memory-mapped **actuator** (`RobotActuator.cs`) you can watch from the
+monitor. The policy's matrix-multiply workload is offloaded to **Google's
+Coral NPU** — via Renode's self-contained `CPU.CoralNPU` block — driven
+over its memory-mapped **CSR / TCM** interface exactly as a real SoC would
+(load a kernel into the NPU's instruction TCM, stage inputs in its data TCM,
+release the clock gate + reset via CSRs, poll `STATUS`, read the result
+back). Renode reports **`ExecutedInstructions` per core**, so you can
+directly compare the policy's matmul cost on the host CPU against work run
+on the NPU — the same methodology as [Antmicro's official Coral demo](https://antmicro.com/blog/2026/07/renode-and-verilator-for-coral-npu).
+
+**Renode nightly, side-by-side.** `CPU.CoralNPU` is only in Renode
+**nightly** builds, so the dev image installs the nightly next to the
+pinned stable release: lab 13 (and its `make test`) use
+`renode-nightly` / `renode-test-nightly`, while **every other lab keeps
+using stable `renode`** — nightly can't destabilise labs 00–12. The
+nightly is amd64-only (Codespaces/CI), so on arm64 hosts lab 13 is skipped
+while the rest still run. The bundled Coral kernel is a prebuilt sample
+(the interface + measurement are real); compiling a real matmul/attention
+kernel for a *functional* offload is documented as the lab's advanced
+extension — the same "vendored prebuilt binary" approach as lab 10.
 
 ## How this works
 

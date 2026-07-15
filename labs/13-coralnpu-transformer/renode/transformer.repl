@@ -1,0 +1,35 @@
+// Lab 13 platform: a bare-metal RV64 "host" application core plus a Google
+// Coral NPU accelerator, wired onto one system bus.
+//
+// The host runs the int8 transformer (firmware host.elf) and drives the
+// NPU over its memory-mapped CSR / TCM interface. `CPU.CoralNPU` is a
+// self-contained accelerator block that only exists in Renode NIGHTLY
+// builds -- this lab therefore runs with `renode-nightly`, while labs
+// 00-12 keep using the pinned stable release. See the README.
+
+cpu: CPU.RiscV64 @ sysbus
+    cpuType: "rv64imac_zicsr_zifencei"
+    privilegeArchitecture: PrivilegeArchitecture.Priv1_10
+    timeProvider: empty
+
+// 64 MiB RAM for the firmware, model weights and activations.
+ram: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000000
+
+// 16550-compatible console UART: the inference log prints here.
+uart: UART.NS16550 @ sysbus 0x10000000
+
+// Robot actuator register block. A hand-written C# peripheral
+// (peripherals/RobotActuator.cs, lab 07/12 pattern) mirrors the policy's
+// MMIO writes and logs each commanded skill to the Renode monitor.
+//   sysbus ReadDoubleWord 0x90000000   # current SKILL id
+//   sysbus ReadDoubleWord 0x90000004   # PARAM0 (velocity / angle)
+actuator: Robot.RobotActuator @ sysbus 0x90000000
+
+// Google Coral NPU. Self-contained accelerator with embedded ITCM
+// (instruction TCM) / DTCM (data TCM) and memory-mapped CSRs, mapped into
+// the host address space at 0xE00000000:
+//   ITCM  0xE00000000  (kernel binary is loaded here)
+//   DTCM  0xE00010000  (inputs/outputs)
+//   CSR   0xE00030000  (RESET_CONTROL / PC_START / STATUS)
+npu: CPU.CoralNPU @ sysbus 0xE00000000

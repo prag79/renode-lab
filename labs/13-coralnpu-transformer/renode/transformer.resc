@@ -1,0 +1,100 @@
+:name: Transformer robot policy accelerated by a Coral NPU (RISC-V)
+:description: A bare-metal RV64 robot controller runs an int8 transformer policy (command -> intent -> skills -> actuator) and offloads its matmuls to a Google Coral NPU (CPU.CoralNPU), comparing per-core instruction counts.
+
+mach create "coral"
+
+# Compile and load the actuator peripheral (lab 07/12 pattern).
+i @peripherals/RobotActuator.cs
+
+machine LoadPlatformDescription @renode/transformer.repl
+
+# Stage the Coral NPU kernel into the NPU's instruction TCM (offset 0).
+# We prefer a locally-fetched copy (tools/fetch_npu_kernel.sh -> binaries/)
+# and fall back to Antmicro's hosted sample; if neither is reachable the
+# transformer still runs on the host and the NPU phase reports "no kernel".
+python """
+import os
+# Prefer the real transformer kernel (functional offload); fall back to a
+# fetched copy, then to Antmicro's add sample (interface-only). Build the
+# real one with tools/build_kernel.sh.
+KERNELS = [
+    ("coralnpu/kernel/npu_transformer.bin", "transformer kernel (functional offload)"),
+    ("binaries/coralnpu_kernel.bin",        "prebuilt kernel"),
+]
+KERNEL_URL = "@https://dl.antmicro.com/projects/renode/coralnpu_v2_hello_world_add_floats.bin-s_65648-0e3f5d6ae173fa2e06f6b5f91906ef721516de4c"
+machine = monitor.Machine
+loaded = False
+for path, desc in KERNELS:
+    if os.path.exists(path):
+        try:
+            monitor.Parse("npu LoadBinary @%s 0" % path)
+            print "Coral NPU kernel: loaded %s (%s)" % (path, desc)
+            loaded = True
+            break
+        except Exception as e:
+            print "Coral NPU kernel: failed to load %s (%s)" % (path, str(e))
+if not loaded:
+    try:
+        monitor.Parse("npu LoadBinary %s 0" % KERNEL_URL)
+        print "Coral NPU kernel: loaded Antmicro add sample (interface-only; host runs the policy)."
+        print "  For a FUNCTIONAL offload, build the transformer kernel: tools/build_kernel.sh"
+    except Exception as e:
+        print "Coral NPU kernel: NOT loaded (%s); host will run the policy." % str(e)
+"""
+
+# Per-core instruction counting -- the same methodology as Antmicro's
+# official Coral demo. On the marker lines the firmware prints, snapshot
+# each core's ExecutedInstructions and print the delta so you can compare
+# the policy's matmul cost on the host CPU against the Coral NPU.
+python """
+_CORES = [
+    ("host cpu",  "sysbus.cpu"),
+    ("Coral NPU", "sysbus.CoralNPU_RVV"),
+]
+
+def _read(path):
+    try:
+        return machine[path].ExecutedInstructions
+    except Exception:
+        return None
+
+def coral_reset(line=None):
+    snap = coral_reset.snap
+    snap.clear()
+    for _, path in _CORES:
+        v = _read(path)
+        if v is not None:
+            snap[path] = v
+
+def coral_print(line=None):
+    snap = coral_reset.snap
+    print "\n--- executed instructions (this phase) ---"
+    for label, path in _CORES:
+        cur = _read(path)
+        if cur is None:
+            continue
+        if path == "sysbus.CoralNPU_RVV":
+            print "  %-12s %d  (NPU last run)" % (label + ":", cur)
+        else:
+            base = snap.get(path, cur)
+            print "  %-12s %d" % (label + ":", cur - base)
+    print "------------------------------------------"
+
+coral_reset.snap = {}
+machine = monitor.Machine
+uart = machine['sysbus.uart']
+uart.AddLineHook(lambda line: '# host_policy_start' in line, coral_reset)
+uart.AddLineHook(lambda line: '# host_policy_done'  in line, coral_print)
+uart.AddLineHook(lambda line: '# npu_infer_start' in line, coral_reset)
+uart.AddLineHook(lambda line: '# npu_infer_done'  in line, coral_print)
+"""
+
+macro reset
+"""
+    sysbus LoadELF @host.elf
+"""
+runMacro $reset
+
+showAnalyzer sysbus.uart
+
+start

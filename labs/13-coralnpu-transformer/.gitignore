@@ -1,0 +1,11 @@
+host.elf
+src/*.o
+binaries/*.bin
+binaries/*.so
+coralnpu/kernel/*.o
+coralnpu/kernel/*.elf
+coralnpu/kernel/*.bin
+__pycache__/
+robot_output.xml
+log.html
+report.html
