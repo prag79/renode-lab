@@ -1,0 +1,25 @@
+:name: Edge-AI robot (RISC-V)
+:description: On-device int8 intent model turns natural-language commands into low-level robot skill plans on a bare-metal RV64 core.
+
+mach create "robot"
+
+# Compile and load the actuator peripheral (lab 07 pattern).
+i @peripherals/RobotActuator.cs
+
+machine LoadPlatformDescription @renode/robot.repl
+
+# `machine Reset` reloads the firmware (macro name is <machine>.reset).
+# Re-run the demo any time with `machine Reset` then `start`.
+macro reset
+"""
+    sysbus LoadELF @robot.elf
+"""
+
+runMacro $reset
+
+# UART console: in GUI mode (LAB_GUI=1) this opens an analyzer window in
+# noVNC; headless it streams to the monitor. To capture it to a file,
+# attach a backend before `start`: sysbus.uart CreateFileBackend @/tmp/robot.log true
+showAnalyzer sysbus.uart
+
+start

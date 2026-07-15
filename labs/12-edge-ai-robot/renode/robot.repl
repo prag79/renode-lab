@@ -1,0 +1,26 @@
+// A minimal RISC-V "robot controller": one RV64 core, RAM, a console
+// UART, and a memory-mapped "actuator" register block. The on-device
+// int8 intent model + planner run as plain firmware on the CPU (no
+// accelerator, no GPU) and drive the actuator over MMIO -- the same
+// edge-AI-as-robot-controller pattern as the LFM2.5/Jetson demo, at
+// TinyML scale.
+
+cpu: CPU.RiscV64 @ sysbus
+    cpuType: "rv64imac_zicsr_zifencei"
+    privilegeArchitecture: PrivilegeArchitecture.Priv1_10
+    timeProvider: empty
+
+// 64 MiB RAM: far more than the tiny model + firmware need.
+ram: Memory.MappedMemory @ sysbus 0x80000000
+    size: 0x4000000
+
+// 16550-compatible console UART: the plan + execution log print here.
+uart: UART.NS16550 @ sysbus 0x10000000
+
+// "Robot actuator" register file. A hand-written C# peripheral
+// (peripherals/RobotActuator.cs, lab 07 pattern) mirrors the firmware's
+// MMIO writes and logs each commanded skill to the Renode monitor.
+// Read back live state with:
+//   sysbus ReadDoubleWord 0x90000000   # current SKILL id
+//   sysbus ReadDoubleWord 0x90000004   # PARAM0 (velocity / angle)
+actuator: Robot.RobotActuator @ sysbus 0x90000000

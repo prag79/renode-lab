@@ -1,11 +1,12 @@
 # Student Handout — Renode Lab on GitHub Codespaces
 
-Welcome. Over the next few hours you will simulate nine different
+Welcome. Over the next few hours you will simulate thirteen different
 embedded systems — from a 5-minute MMIO taste on a bare-metal ARM
 Cortex-A9, through a Cortex-M4 microcontroller and a multi-core
 RISC-V Linux SoC, all the way to a SiFive FE310 with timer interrupts,
-a Robot-driven CI suite, a peripheral you write yourself in C#, and an
-optional multi-node IoT network — all inside a browser tab, with
+a Robot-driven CI suite, a peripheral you write yourself in C#, optional
+capstones (multi-node IoT, edge AI, TensorFlow Lite Micro, cloud IoT,
+and an edge-AI robot controller) — all inside a browser tab, with
 **nothing installed on your laptop**.
 
 This document walks you through the setup once. After that,
@@ -170,7 +171,7 @@ lab list
 You should see all the available labs:
 
 ```
-Available labs (00–07 core, 08 optional capstone):
+Available labs (00–07 core, 08–12 optional capstones):
   00       - bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: lab demo)
   01       - bundled STM32F4 demo (sanity check)
   02       - Linux on SiFive HiFive Unleashed (RISC-V)
@@ -180,12 +181,17 @@ Available labs (00–07 core, 08 optional capstone):
   06       - headless regression testing with the Robot framework
   07       - model your own peripheral (custom C# timer IP)
   08       - (optional) multi-node IoT network: 3x FE310 over a shared UART bus
+  09       - (optional) edge AI: run an int8 neural net on a bare-metal RISC-V core
+  10       - (optional) real TensorFlow Lite Micro: gesture recognition on LiteX/VexRiscv
+  11       - (optional) cloud IoT: stream JSON telemetry to AWS IoT Core / Azure IoT Hub
+  12       - (optional) edge-AI robot: on-device int8 model turns commands into robot skill plans
   monitor  - plain Renode interactive monitor
 ```
 
-Lab **08** is an optional capstone — three simulated FE310 boards on
-one shared UART bus (sensors + gateway). You don't need it for the
-sanity check below; run it after labs 00–07 when you're ready.
+Labs **08–12** are optional capstones — multi-node IoT, edge AI from
+scratch, production TensorFlow Lite Micro, cloud telemetry, and an
+on-device robot controller. You don't need them for the sanity check
+below; run them after labs 00–07 when you're ready.
 
 Then run lab 01:
 
@@ -208,7 +214,7 @@ first, your environment is healthy. Type `quit` to exit.
 
 If anything above fails, see **§ 5 Troubleshooting**.
 
-## 3. The nine exercises
+## 3. The exercises
 
 Each lab has its own detailed `README.md` with a 7-section
 walkthrough — bring up, what just happened, first commands,
@@ -226,6 +232,10 @@ experiments, and clean exit.
 | **06** | ~45 min | Headless CI: write a Robot Framework suite that boots firmware, asserts UART output, and fails the build (non-zero exit) on regressions. | [`labs/06-robot-testing/README.md`](labs/06-robot-testing/README.md) |
 | **07** | ~75 min | Model your own peripheral: write a memory-mapped timer IP in C#, compiled by Renode at runtime, that raises an interrupt the firmware handles. | [`labs/07-custom-peripheral/README.md`](labs/07-custom-peripheral/README.md) |
 | **08** | ~45 min | *(optional)* Multi-node IoT network: boot three FE310 machines in one emulation, wire their `uart1`s onto a shared `UARTHub`, and watch two sensor nodes' reports converge on a gateway. | [`labs/08-multi-node-iot/README.md`](labs/08-multi-node-iot/README.md) |
+| **09** | ~60 min | *(optional)* Edge AI / TinyML: an int8-quantized neural net classifies handwritten digits with integer-only inference on a bare-metal RV64 core. | [`labs/09-edge-ai/README.md`](labs/09-edge-ai/README.md) |
+| **10** | ~45 min | *(optional)* Real TensorFlow Lite Micro on LiteX/VexRiscv: gesture recognition with a prebuilt Zephyr firmware; `lab 10 cfu` adds a Verilated hardware accelerator. | [`labs/10-tflite-micro/README.md`](labs/10-tflite-micro/README.md) |
+| **11** | ~60 min | *(optional)* Cloud IoT: a RISC-V node streams JSON telemetry to a host gateway bridge that forwards to AWS IoT Core / Azure IoT Hub; `lab 11 fleet` adds a multi-node sensor bus. | [`labs/11-cloud-iot/README.md`](labs/11-cloud-iot/README.md) |
+| **12** | ~60 min | *(optional)* Edge-AI robot: an on-device int8 intent model turns natural-language commands into low-level skill plans and drives a custom C# actuator — fully offline. | [`labs/12-edge-ai-robot/README.md`](labs/12-edge-ai-robot/README.md) |
 
 Do them **in order** — they increase in difficulty. Lab 00 is a 5-minute
 sanity check that the toolchain works; 01–02 then run bundled images,
@@ -235,8 +245,10 @@ regression test, and 07 has you write a brand-new peripheral model that
 the CPU talks to. Each one introduces a concept the next assumes (the
 three Renode primitives `mach create`, `LoadPlatformDescription`,
 `LoadELF` + `start`; then real peripherals, interrupts, and automated
-testing). Lab 08 is **optional** — a multi-node capstone that runs
-several machines at once and connects them over a shared bus.
+testing). Labs **08–12** are **optional capstones** — multi-node IoT,
+edge AI from scratch, production TensorFlow Lite Micro, cloud telemetry,
+and an on-device robot controller that composes skills from a tiny
+learned model.
 
 ## 4. Where your edits live
 
@@ -364,7 +376,7 @@ gh pr create --repo prag79/renode-lab \
 | noVNC tab shows "Failed to connect" or HTTP 502 | Port 6080's WebSocket handshake hadn't completed when the tab opened | Wait 10 s and click **Connect** in the noVNC page. If still broken: in VS Code's **Ports** panel, right-click port 6080 → **Port Visibility → Public** (or sign in to the popup). |
 | Browser tab opens but shows the noVNC welcome screen, not a desktop | URL is missing the path | Append `/vnc.html` to the URL, then **Connect**. |
 | `pgrep -af 'Xvfb\|fluxbox\|x11vnc\|websockify'` shows fewer than four processes | The headless desktop didn't fully start | Run `/usr/local/bin/entrypoint.sh true`. Check the per-service logs in `/tmp/Xvfb_:1.log`, `/tmp/fluxbox.log`, `/tmp/x11vnc_-display_:1.log`, `/tmp/websockify.log`. |
-| `lab list` stops at **07** (no **08**) after rebuild | Codespaces reused a cached `ghcr.io/...:latest` image even though CI pushed a newer one | `cd /workspaces/renode-lab && git pull`, then **Rebuild Container** (postStart now runs `sync-labs.sh` to overlay `lab` + `labs/` from the repo). Or run `bash sync-labs.sh` by hand after `git pull`. |
+| `lab list` stops before the latest optional labs after rebuild | Codespaces reused a cached `ghcr.io/...:latest` image even though CI pushed a newer one | `cd /workspaces/renode-lab && git pull`, then **Rebuild Container** (postStart now runs `sync-labs.sh` to overlay `lab` + `labs/` from the repo). Or run `bash sync-labs.sh` by hand after `git pull`. |
 | `lab` does nothing or says command not found | You're in a shell where `/usr/local/bin` isn't on `$PATH` (rare) | Run it with the full path: `/usr/local/bin/lab list`. |
 | Codespace fails to start with "Failed to pull image" | GHCR rate-limited you or the image package is private | Visit <https://github.com/prag79?tab=packages> → `renode-lab` → check it's **Public**. Retry. |
 | You changed something under `/labs/...`, ran `lab NN`, and your change had no effect | Edits to `/labs/...` are overlaid on a read-only image and discarded on container rebuild — the dispatcher uses `~/work/<lab-name>/...` | Edit the file under `~/work/<lab-name>/...` instead, then `lab NN` again. |
@@ -415,7 +427,7 @@ cheat sheet):
 Open lab:           click the badge in the README
 List labs:          lab list                              (banner runs this on attach)
 Quick taste:        lab 00      (a.k.a. lab demo)         5-min ARM MMIO warm-up
-Optional capstone:  lab 08                                  multi-node IoT (3x FE310)
+Optional capstones: lab 08 | lab 09 | lab 10 | lab 11 | lab 12
 Verify install:     lab list && lab 01 -> start -> sysbus.cpu PC -> quit
 Edit + re-run:      edit ~/work/<lab>/..., then lab NN
 Read UART:          (in monitor) sysbus.uartN CreateFileBackend @/tmp/uartN.log true

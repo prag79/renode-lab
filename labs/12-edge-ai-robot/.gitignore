@@ -1,0 +1,4 @@
+# Build artifacts
+robot.elf
+src/*.o
+__pycache__/

@@ -13,7 +13,7 @@ The first launch pulls a prebuilt image from GHCR (~30–60 s). Re-opening the s
 - Renode pre-installed at `/usr/local/bin/renode`.
 - RISC-V (`riscv64-unknown-elf`) and ARM Cortex-M (`arm-none-eabi`) bare-metal toolchains, plus `riscv64-linux-gnu` for Linux user-mode binaries.
 - A virtual desktop on port **6080** (auto-opened in a new tab) for Renode's GUI analyzer panels.
-- Twelve exercises baked into the image under `/labs/` (read-only) — eight core plus four optional capstones (multi-node IoT, edge AI from scratch, real TensorFlow Lite Micro, and cloud IoT). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
+- Thirteen exercises baked into the image under `/labs/` (read-only) — eight core plus five optional capstones (multi-node IoT, edge AI from scratch, real TensorFlow Lite Micro, cloud IoT, and an edge-AI robot controller). On first run, `lab NN` mirrors the canonical lab into your editable scratch tree at `~/work/<lab-name>/` and runs from there. Edits survive Codespace stop/start.
 
 ## Quick start (in the Codespace terminal)
 
@@ -33,6 +33,7 @@ lab 10                  # (optional) real TensorFlow Lite Micro gesture recognit
 lab 10 cfu              # (optional) same, with a Verilated CFU hardware accelerator (x86-64 + internet)
 lab 11                  # (optional) cloud IoT: stream JSON telemetry to AWS IoT Core / Azure IoT Hub
 lab 11 fleet            # (optional) multi-node sensors -> gateway -> cloud (labs 08 + 11 combined)
+lab 12                  # (optional) edge-AI robot: on-device int8 model turns commands into robot skill plans
 lab monitor             # plain Renode interactive monitor
 ```
 
@@ -122,6 +123,7 @@ gh pr create --repo prag79/renode-lab \
 | `lab 09` | *(optional)* Edge AI / TinyML: an int8-quantized neural net classifies handwritten digits with integer-only inference on a bare-metal RV64 core | [`labs/09-edge-ai/`](labs/09-edge-ai/) |
 | `lab 10` | *(optional)* The real deal: unmodified **TensorFlow Lite Micro** (+ Zephyr) doing gesture recognition on a LiteX/VexRiscv SoC, plus an optional Verilated **CFU** hardware accelerator | [`labs/10-tflite-micro/`](labs/10-tflite-micro/) |
 | `lab 11` | *(optional)* Cloud IoT: a simulated RISC-V node streams JSON telemetry over a socket to a host **gateway bridge** that forwards it to **AWS IoT Core / Azure IoT Hub** + a live dashboard; `lab 11 fleet` adds lab 08's multi-node bus (2 sensors → gateway → cloud) | [`labs/11-cloud-iot/`](labs/11-cloud-iot/) |
+| `lab 12` | *(optional)* Edge-AI robot: a bare-metal RV64 controller runs an **on-device int8 intent model** that turns a natural-language command into a plan of low-level **robot skills** and drives a memory-mapped actuator — the LFM2.5/Jetson robotics architecture at TinyML scale, fully offline | [`labs/12-edge-ai-robot/`](labs/12-edge-ai-robot/) |
 
 Labs are ordered by difficulty: **00** is a 5-minute taste of MMIO on
 ARM, 01–02 run bundled images, 03 builds a minimal custom SoC, 04–05
@@ -132,9 +134,12 @@ runs three machines on a shared UART bus as a multi-node IoT capstone,
 **09** *(optional)* runs a quantized neural network on a bare-metal
 core — edge AI from first principles — **10** *(optional)* runs the
 real production stack: unmodified TensorFlow Lite Micro on RISC-V, with
-an optional hardware ML accelerator, and **11** *(optional)* takes a
+an optional hardware ML accelerator, **11** *(optional)* takes a
 node's telemetry off-chip: a host gateway bridge forwards JSON to AWS
-IoT Core / Azure IoT Hub, closing the edge → gateway → cloud loop.
+IoT Core / Azure IoT Hub, closing the edge → gateway → cloud loop, and
+**12** *(optional)* runs an on-device int8 model as a robot's decision
+layer — command → skill plan → actuator — the edge-AI-robot pattern,
+fully offline.
 
 ## Step-by-step tutorials
 
@@ -544,6 +549,40 @@ SDK). Credentials live only on the host (git-ignored `certs/` / `.env`),
 never in firmware. `lab 11 fleet` bolts lab 08's shared-bus multi-node
 network onto the front: two sensor nodes broadcast on a UART hub, a
 gateway node relays the merged stream out the cloud uplink.
+
+### Lab 12 — Edge-AI robot: command → skill plan → actuator (optional)
+
+Full walkthrough: [`labs/12-edge-ai-robot/README.md`](labs/12-edge-ai-robot/README.md).
+
+```bash
+lab 12            # runs 8 natural-language commands through the on-device model
+make test         # headless UART regression (lab 06 style)
+# headless: capture the console with a UART backend, then:
+tail -f /tmp/robot.log
+```
+
+Inspired by [Liquid AI's LFM2.5-230M robotics demo](https://www.liquid.ai/blog/lfm2-5-230m)
+— where a small model runs *on-device* and acts as a **skill-selection
+layer**, decomposing one natural-language command into a sequence of
+pre-trained low-level skills — this lab reproduces that **architecture**
+(not the LLM) at TinyML scale. A bare-metal RV64 controller tokenizes a
+command into a bag-of-words vector, runs an **int8 linear model**
+(`logits = W·x`, argmax) to pick an intent, expands that intent into a
+fixed plan of low-level **skills** (walk / turn / kneel / hold / stop /
+dock), and drives each skill to a **memory-mapped actuator** you can read
+from the monitor. The entire "AI" is one integer matrix-vector multiply —
+no FPU, no ML framework, no network, fully offline.
+
+**Why not the real Jetson demo?** Renode has generic ARM **Cortex-A78**
+Linux support but **no Jetson Orin board model and no GPU/NVDLA
+simulation**, so the GPU-accelerated 230M LLM that makes LFM2.5 fast
+can't run here. Renode's strength is the *system around the model* — CPU,
+memory-mapped actuator, and the bring-up/debug loop — so this lab keeps
+the shape of that robot (command → on-device model → skill plan →
+hardware) and leaves the GPU-class model + real skills to actual silicon.
+It composes cleanly with the earlier labs: swap the classifier for a real
+quantized model (lab 09/10), the MMIO window for a modeled motor
+controller (lab 07), or add sensor nodes on a bus (lab 08).
 
 ## How this works
 
