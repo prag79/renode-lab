@@ -1,6 +1,6 @@
 # Lab 08 — Multi-node IoT network (optional)
 
-> **Optional capstone.** Every lab so far ran a *single* machine. Real
+> Every lab so far ran a *single* machine. Real
 > IoT systems are **many** small nodes talking over a shared medium —
 > a mesh of sensors reporting to a gateway. This lab boots **three**
 > SiFive FE310 machines *in one Renode emulation*, wires their radios
