@@ -9,6 +9,17 @@
     "DISPLAY": ":1"
   },
 
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ritwickdey.LiveServer"
+      ],
+      "settings": {
+        "liveServer.settings.donotShowInfoMsg": true
+      }
+    }
+  },
+
   "postStartCommand": "bash sync-labs.sh 2>/dev/null || true; /usr/local/bin/entrypoint.sh true",
 
   "forwardPorts": [6080, 1234],
