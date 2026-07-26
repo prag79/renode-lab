@@ -27,10 +27,10 @@ lab 04                  # bare-metal on a SiFive FE310 (HiFive1): UART + GPIO bl
 lab 05                  # FE310 timer interrupts: blink from a CLINT ISR
 lab 06                  # headless regression testing with the Robot framework
 lab 07                  # model your own peripheral (custom C# timer IP)
-lab 08                  # (optional) multi-node IoT network: 3x FE310 over a shared UART bus
-lab 09                  # (optional) edge AI: run an int8 neural net on a bare-metal RISC-V core
-lab 10                  # (optional) real TensorFlow Lite Micro gesture recognition on LiteX/VexRiscv
-lab 10 cfu              # (optional) same, with a Verilated CFU hardware accelerator (x86-64 + internet)
+lab 08                  # multi-node IoT network: 3x FE310 over a shared UART bus
+lab 09                  # edge AI: run an int8 neural net on a bare-metal RISC-V core
+lab 10                  # real TensorFlow Lite Micro gesture recognition on LiteX/VexRiscv
+lab 10 cfu              # same, with a Verilated CFU hardware accelerator (x86-64 + internet)
 lab 11                  # (optional) cloud IoT: stream JSON telemetry to AWS IoT Core / Azure IoT Hub
 lab 11 fleet            # (optional) multi-node sensors -> gateway -> cloud (labs 08 + 11 combined)
 lab 12                  # (optional) edge-AI robot: on-device int8 model turns commands into robot skill plans
