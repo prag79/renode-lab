@@ -22,4 +22,4 @@ runMacro $reset
 # attach a backend before `start`: sysbus.uart CreateFileBackend @/tmp/robot.log true
 showAnalyzer sysbus.uart
 
-start
+#start

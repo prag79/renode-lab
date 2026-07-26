@@ -18,4 +18,4 @@ runMacro $reset
 # noVNC; headless, attach a file backend instead (see README section 4).
 showAnalyzer sysbus.uart
 
-start
+#start
