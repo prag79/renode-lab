@@ -144,9 +144,9 @@ AWS IoT Core speaks **MQTT over mutual TLS** on port 8883. You'll need a
    the bridge expects:
 
    ```
-   labs/11-cloud-iot/certs/AmazonRootCA1.pem
-   labs/11-cloud-iot/certs/device.pem.crt
-   labs/11-cloud-iot/certs/private.pem.key
+   ~/work/11-cloud-iot/certs/AmazonRootCA1.pem
+   ~/work/11-cloud-iot/certs/device.pem.crt
+   ~/work/11-cloud-iot/certs/private.pem.key
    ```
 
 3. **Set your endpoint.** Copy `.env.example` to `.env`, fill in

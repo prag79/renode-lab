@@ -61,7 +61,7 @@ For the **functional offload** (transformer running *on* the NPU), build
 the kernel first (one-time, needs an `rv32im` toolchain):
 
 ```bash
-cd labs/13-coralnpu-transformer && tools/build_kernel.sh   # -> binaries/coralnpu_kernel.bin
+cd ~/work/13-coralnpu-transformer && tools/build_kernel.sh   # -> binaries/coralnpu_kernel.bin
 ```
 
 If that kernel is present the policy runs **on the Coral core**; otherwise

@@ -242,8 +242,9 @@ makes `Step` and raw memory pokes especially fun here.
    terminal:
 
    ```bash
-   riscv64-unknown-elf-objdump -d labs/03-custom-soc/hello.elf | less
-   riscv64-unknown-elf-nm labs/03-custom-soc/hello.elf | sort
+   cd ~/work/03-custom-soc
+   riscv64-unknown-elf-objdump -d hello.elf | less
+   riscv64-unknown-elf-nm hello.elf | sort
    ```
 
    Confirm `_start` is at `0x80000000` and `main` lives a few
