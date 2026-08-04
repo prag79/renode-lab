@@ -174,6 +174,13 @@ interesting ones for a Linux boot are:
    illustrative if you've never written a UART driver. Reset
    with `logLevel 3 sysbus.uart0`.
 
+   > **Tip:** the verbose register log is mixed into the same monitor
+   > console as the Linux shell, so it can be hard to read. If you only
+   > see a warning like `uart0: Trying to read data from empty receive fifo`,
+   > that is normal — the driver is polling the receive FIFO. To see the
+   > full trace cleanly, either `pause` first, or capture the UART to a
+   > file: `sysbus.uart0 CreateFileBackend @/tmp/hifive-uart-trace.log true`.
+
 4. **Use Linux to talk to the simulated hardware.** From the
    BusyBox shell:
 
