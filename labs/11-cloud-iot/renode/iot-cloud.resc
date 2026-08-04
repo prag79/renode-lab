@@ -19,7 +19,7 @@ runMacro $reset
 
 # Start streaming immediately. The socket buffers until the bridge
 # connects, so you can start the bridge before or after this.
-start
+#start
 
 echo ""
 echo "IoT node streaming JSON telemetry on tcp://localhost:3456"

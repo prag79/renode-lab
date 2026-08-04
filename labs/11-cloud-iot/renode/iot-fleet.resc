@@ -34,7 +34,7 @@ showAnalyzer sysbus.uart0
 
 # Starting the emulation starts every machine AND the hub together, so
 # all three nodes advance on one shared simulated clock.
-start
+#start
 
 echo ""
 echo "IoT fleet running: 2 sensors -> gateway -> tcp://localhost:3456"

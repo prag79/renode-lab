@@ -19,7 +19,7 @@
 
 i @scripts/single-node/litex_vexriscv_verilated_cfu.resc
 
-start
+#start
 
 echo ""
 echo "In the UART analyzer, use the interactive menu:"
