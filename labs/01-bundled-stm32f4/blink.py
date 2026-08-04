@@ -17,7 +17,7 @@
 for i in range(10):
     monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x00001000')
     monitor.Parse('emulation RunFor "0.2"')
-    monitor.Parse('sysbus.gpioPortD.UserLED State')
+    print monitor.Parse('sysbus.gpioPortD.UserLED State')
     monitor.Parse('sysbus WriteDoubleWord 0x40020C18 0x10000000')
     monitor.Parse('emulation RunFor "0.2"')
-    monitor.Parse('sysbus.gpioPortD.UserLED State')
+    print monitor.Parse('sysbus.gpioPortD.UserLED State')

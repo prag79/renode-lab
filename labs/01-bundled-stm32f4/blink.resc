@@ -24,4 +24,5 @@
 #    absolute path from the student's home directory instead, so
 #    the include works regardless of CWD.
 
+pause
 python "import os; execfile(os.path.expanduser('~/work/01-bundled-stm32f4/blink.py'))"
