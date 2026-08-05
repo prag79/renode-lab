@@ -336,6 +336,73 @@ telemetry for a whole fleet.
 > chip per device. So `lab 11 fleet` shows `renode-sim-01` and
 > `renode-sim-02` as distinct series, while `lab 11` shows just one.
 
+### Azure IoT Hub with the fleet variant
+
+The fleet gateway forwards messages from **both** simulated devices,
+`renode-sim-01` and `renode-sim-02`, through a single TCP socket. With
+Azure IoT Hub, the bridge authenticates as **one** device identity using a
+single connection string, so register both devices for completeness and
+pick the connection string of the device you want the bridge to use.
+
+1. **Register both edge devices** in Azure Cloud Shell (or with the
+   Azure CLI):
+
+   ```bash
+   az iot hub device-identity create \
+       --device-id renode-sim-01 --hub-name <YOUR-HUB-NAME>
+   az iot hub device-identity create \
+       --device-id renode-sim-02 --hub-name <YOUR-HUB-NAME>
+   ```
+
+2. **Get one connection string** for the bridge (the other is available
+   if you later want to switch). Using the gateway device as the bridge
+   identity is a natural choice:
+
+   ```bash
+   az iot hub device-identity connection-string show \
+       --device-id renode-sim-01 --hub-name <YOUR-HUB-NAME> -o tsv
+   ```
+
+3. **Run the bridge** in the Codespace (the fleet gateway still exposes
+   the merged stream on TCP 3456):
+
+   ```bash
+   cd ~/work/11-cloud-iot
+   pip install -r tools/requirements-azure.txt
+   export AZURE_IOT_CONNECTION_STRING='HostName=<YOUR-HUB-NAME>.azure-devices.net;DeviceId=renode-sim-01;SharedAccessKey=<key>'
+   python3 tools/bridge.py --cloud azure
+   ```
+
+4. **Watch both data streams** in Azure Cloud Shell. Omit
+   `--device-id` to see messages arriving from the hub's point of view;
+   the JSON payloads still carry `device=renode-sim-01` and
+   `device=renode-sim-02` so you can tell the two sensors apart:
+
+   ```bash
+   az iot hub monitor-events --output table \
+       --hub-name <YOUR-HUB-NAME>
+   ```
+
+   Or watch one device at a time:
+
+   ```bash
+   az iot hub monitor-events --output table \
+       --device-id renode-sim-01 --hub-name <YOUR-HUB-NAME>
+   az iot hub monitor-events --output table \
+       --device-id renode-sim-02 --hub-name <YOUR-HUB-NAME>
+   ```
+
+> **Note on device identity.** Because the bridge currently opens one
+> Azure device client, every forwarded message is published under that
+> single authenticated device identity. The `device` field inside the JSON
+> still correctly identifies which simulated sensor produced the sample,
+> so you can see both streams in `monitor-events`, but Azure's device
+> telemetry attribution is to the bridge's connection string. If you need
+> each simulated sensor to appear as a *distinct* Azure device identity,
+> run separate `lab 11` single-node instances (one per device) with a
+> matching connection string each, or extend the bridge to open multiple
+> Azure device clients.
+
 ## 7. Useful monitor commands
 
 Single-node (`lab 11`):
