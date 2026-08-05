@@ -134,13 +134,40 @@ cloud broker with credentials that never touch the firmware.
 ## 4. Forward to AWS IoT Core (`--cloud aws`)
 
 AWS IoT Core speaks **MQTT over mutual TLS** on port 8883. You'll need a
-(free-tier) "Thing" with an X.509 certificate.
+(free-tier) "Thing" with an X.509 certificate. The bridge uses the
+`paho-mqtt` client and the credential files in `certs/`.
 
 1. **Create a Thing + certificate.** AWS IoT console → *Manage → Things →
    Create* → *Auto-generate a new certificate*. Download the device
-   certificate, the private key, and the **Amazon Root CA 1**. Attach a
-   policy that allows `iot:Connect`/`iot:Publish`.
-2. **Drop the files in `certs/`** (git-ignored) using the default names
+   certificate, the private key, and the **Amazon Root CA 1**.
+
+2. **Attach an IAM policy to the certificate.** A minimal publish-only
+   policy looks like this (replace `*` with your region/account if you
+   want to restrict it further):
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["iot:Connect"],
+         "Resource": "arn:aws:iot:*:123456789012:client/renode-sim-01"
+       },
+       {
+         "Effect": "Allow",
+         "Action": ["iot:Publish"],
+         "Resource": "arn:aws:iot:*:123456789012:topic/renode/telemetry"
+       }
+     ]
+   }
+   ```
+
+   The bridge's default MQTT client ID is `renode-sim-01`; override with
+   `AWS_IOT_CLIENT_ID` if you prefer a different name. The default topic is
+   `renode/telemetry`; override with `AWS_IOT_TOPIC`.
+
+3. **Drop the files in `certs/`** (git-ignored) using the default names
    the bridge expects:
 
    ```
@@ -149,19 +176,29 @@ AWS IoT Core speaks **MQTT over mutual TLS** on port 8883. You'll need a
    ~/work/11-cloud-iot/certs/private.pem.key
    ```
 
-3. **Set your endpoint.** Copy `.env.example` to `.env`, fill in
+   If your downloaded files have different names, either rename them or
+   override the paths with env vars: `AWS_IOT_CA`, `AWS_IOT_CERT`,
+   `AWS_IOT_KEY`.
+
+4. **Set your endpoint.** Copy `.env.example` to `.env`, fill in
    `AWS_IOT_ENDPOINT` (console → *Settings → Device data endpoint*), then
    load it and run:
 
    ```bash
+   cd ~/work/11-cloud-iot
    pip install -r tools/requirements-aws.txt
    set -a; . ./.env; set +a          # export the vars for this shell
    python3 tools/bridge.py --cloud aws
    ```
 
-4. **Verify.** In the AWS IoT console → *MQTT test client*, subscribe to
+5. **Verify.** In the AWS IoT console → *MQTT test client*, subscribe to
    `renode/telemetry` (or your `AWS_IOT_TOPIC`) and watch the messages
    arrive.
+
+   For the fleet variant (`lab 11 fleet`), the same single certificate and
+   client ID can publish all sensor messages — the JSON payloads still
+   contain `device=renode-sim-01` and `device=renode-sim-02`, so you can
+   distinguish the two sensors in the MQTT stream.
 
 ## 5. Forward to Azure IoT Hub (`--cloud azure`)
 
