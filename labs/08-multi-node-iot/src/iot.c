@@ -138,7 +138,7 @@ int main(void) {
         uart_putc(UART0_BASE, '\n');
 
         seq++;
-        delay(6000000U);
+        delay(60000U);
     }
     return 0;
 }
