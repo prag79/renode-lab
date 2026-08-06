@@ -58,10 +58,11 @@ Coral NPU kernel into the NPU's instruction TCM, loads the firmware, and
 starts the host CPU.
 
 For the **functional offload** (transformer running *on* the NPU), build
-the kernel first (one-time, needs an `rv32im` toolchain):
+the kernel first (one-time, needs an `rv32im` toolchain), then run the lab:
 
 ```bash
 cd ~/work/13-coralnpu-transformer && tools/build_kernel.sh   # -> binaries/coralnpu_kernel.bin
+lab 13
 ```
 
 If that kernel is present the policy runs **on the Coral core**; otherwise
