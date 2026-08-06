@@ -35,7 +35,7 @@ when you're done for the day. Leaving a Codespace running idle
 burns compute hours; leaving it created-but-stopped burns
 storage. We'll cover both at the end.
 
-### 1.2 (Recommended) The GitHub Student Developer Pack
+### 1.2 (Recommended-but optional for this lab) The GitHub Student Developer Pack
 
 If you're a student, apply for the free **GitHub Student Developer
 Pack**. It upgrades your account to **GitHub Pro** at no cost, which
@@ -155,9 +155,6 @@ Click it. GitHub will:
 4. Open VS Code in your browser, attached to the running
    container.
 
-A second tab will auto-open at `*.app.github.dev:6080/vnc.html` —
-that's the noVNC desktop. If it shows "Failed to connect", give
-it 10 seconds and click **Connect** in the noVNC page.
 
 ### 2.3 Verify the environment
 
@@ -189,10 +186,9 @@ Available labs (00–07 core, 08–13 optional capstones):
   monitor  - plain Renode interactive monitor
 ```
 
-Labs **08–13** are optional capstones — multi-node IoT, edge AI from
-scratch, production TensorFlow Lite Micro, cloud telemetry, an on-device
+Labs **11–13** are optional capstones — cloud telemetry, an on-device
 robot controller, and a transformer offloaded to a Google Coral NPU. You
-don't need them for the sanity check below; run them after labs 00–07 when
+don't need them for the sanity check below; run them after labs 00–010 when
 you're ready.
 
 Then run lab 01:
@@ -216,46 +212,8 @@ first, your environment is healthy. Type `quit` to exit.
 
 If anything above fails, see **§ 5 Troubleshooting**.
 
-## 3. The exercises
 
-Each lab has its own detailed `README.md` with a 7-section
-walkthrough — bring up, what just happened, first commands,
-headless UART recipes, useful monitor command tables, mini-
-experiments, and clean exit.
-
-| Lab | Time | What you'll do | Detailed README |
-|---|---|---|---|
-| **00** | ~5 min | A 5-minute MMIO warm-up: bare-metal ARM Cortex-A9 reads/writes four 32-bit registers in a memory-mapped "SmartTimer" stub, then you read them back from the monitor. (Aliased: `lab demo`.) | [`labs/00-Demo/README.md`](labs/00-Demo/README.md) |
-| **01** | ~20 min | Boot a bundled Contiki firmware on a simulated STM32F4 Discovery board. Read UART, single-step the CPU, blink the on-board LED from the simulator. | [`labs/01-bundled-stm32f4/README.md`](labs/01-bundled-stm32f4/README.md) |
-| **02** | ~30 min | Boot an unmodified RISC-V Linux kernel (5 cores, OpenSBI, BusyBox userspace) on the SiFive HiFive Unleashed model. Poke around `/proc`, trace UART traffic at the bus level. | [`labs/02-linux-on-hifive/README.md`](labs/02-linux-on-hifive/README.md) |
-| **03** | ~45 min | Cross-compile bare-metal C for RV64. Run it on a 9-line custom SoC you can edit. Add a second peripheral with one line. | [`labs/03-custom-soc/README.md`](labs/03-custom-soc/README.md) |
-| **04** | ~45 min | Bare-metal on a **real** SiFive FE310 (HiFive1). Drive the SiFive UART and GPIO at their datasheet addresses; blink an LED on RV32. | [`labs/04-sifive-fe310/README.md`](labs/04-sifive-fe310/README.md) |
-| **05** | ~60 min | RISC-V machine-mode interrupts: program `mtvec`/`mie`/`mstatus` and the CLINT timer, then blink the LED from an interrupt handler. | [`labs/05-fe310-interrupts/README.md`](labs/05-fe310-interrupts/README.md) |
-| **06** | ~45 min | Headless CI: write a Robot Framework suite that boots firmware, asserts UART output, and fails the build (non-zero exit) on regressions. | [`labs/06-robot-testing/README.md`](labs/06-robot-testing/README.md) |
-| **07** | ~75 min | Model your own peripheral: write a memory-mapped timer IP in C#, compiled by Renode at runtime, that raises an interrupt the firmware handles. | [`labs/07-custom-peripheral/README.md`](labs/07-custom-peripheral/README.md) |
-| **08** | ~45 min | *(optional)* Multi-node IoT network: boot three FE310 machines in one emulation, wire their `uart1`s onto a shared `UARTHub`, and watch two sensor nodes' reports converge on a gateway. | [`labs/08-multi-node-iot/README.md`](labs/08-multi-node-iot/README.md) |
-| **09** | ~60 min | *(optional)* Edge AI / TinyML: an int8-quantized neural net classifies handwritten digits with integer-only inference on a bare-metal RV64 core. | [`labs/09-edge-ai/README.md`](labs/09-edge-ai/README.md) |
-| **10** | ~45 min | *(optional)* Real TensorFlow Lite Micro on LiteX/VexRiscv: gesture recognition with a prebuilt Zephyr firmware; `lab 10 cfu` adds a Verilated hardware accelerator. | [`labs/10-tflite-micro/README.md`](labs/10-tflite-micro/README.md) |
-| **11** | ~60 min | *(optional)* Cloud IoT: a RISC-V node streams JSON telemetry to a host gateway bridge that forwards to AWS IoT Core / Azure IoT Hub; `lab 11 fleet` adds a multi-node sensor bus. | [`labs/11-cloud-iot/README.md`](labs/11-cloud-iot/README.md) |
-| **12** | ~60 min | *(optional)* Edge-AI robot: an on-device int8 intent model turns natural-language commands into low-level skill plans and drives a custom C# actuator — fully offline. | [`labs/12-edge-ai-robot/README.md`](labs/12-edge-ai-robot/README.md) |
-| **13** | ~75 min | *(optional)* Transformer robot on a **Google Coral NPU**: a bare-metal RV64 controller tokenizes a command, runs a real int8 transformer policy to pick a robot intent, expands it into skills, and drives a memory-mapped actuator — offloading the policy's matmuls to Renode's `CPU.CoralNPU` and comparing per-core instruction counts. **Needs Renode nightly** (installed alongside stable). | [`labs/13-coralnpu-transformer/README.md`](labs/13-coralnpu-transformer/README.md) |
-
-Do them **in order** — they increase in difficulty. Lab 00 is a 5-minute
-sanity check that the toolchain works; 01–02 then run bundled images,
-03 builds a minimal custom SoC, 04–05 move to a real SiFive chip with
-real peripherals and interrupts, 06 turns it all into an automated
-regression test, and 07 has you write a brand-new peripheral model that
-the CPU talks to. Each one introduces a concept the next assumes (the
-three Renode primitives `mach create`, `LoadPlatformDescription`,
-`LoadELF` + `start`; then real peripherals, interrupts, and automated
-testing). Labs **08–13** are **optional capstones** — multi-node IoT,
-edge AI from scratch, production TensorFlow Lite Micro, cloud telemetry,
-an on-device robot controller that composes skills from a tiny learned
-model, and an end-to-end transformer robot whose policy matmuls are
-offloaded to a Google Coral NPU (lab 13 uses Renode nightly, installed
-alongside the stable release the others use).
-
-## 4. Where your edits live
+## 3. Where your edits live
 
 The `lab NN` command does not run the lab from `/labs/...`
 directly. On first invocation it copies the lab into a
@@ -279,7 +237,7 @@ from there:
   request is *not* required just to keep your work**; it's only
   needed if you want your changes merged into upstream.
 
-### 4.1 Persisting your work past Codespace deletion
+### 3.1 Persisting your work past Codespace deletion
 
 `prag79/renode-lab` is read-only for you (only the maintainer can
 push). To save your edits, fork the repo and push to your fork.
@@ -372,7 +330,7 @@ gh pr create --repo prag79/renode-lab \
     --body  "Short description of what changed and why."
 ```
 
-## 5. Troubleshooting
+## 4. Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
@@ -386,7 +344,7 @@ gh pr create --repo prag79/renode-lab \
 | Codespace fails to start with "Failed to pull image" | GHCR rate-limited you or the image package is private | Visit <https://github.com/prag79?tab=packages> → `renode-lab` → check it's **Public**. Retry. |
 | You changed something under `/labs/...`, ran `lab NN`, and your change had no effect | Edits to `/labs/...` are overlaid on a read-only image and discarded on container rebuild — the dispatcher uses `~/work/<lab-name>/...` | Edit the file under `~/work/<lab-name>/...` instead, then `lab NN` again. |
 
-## 6. Cost discipline (so you don't burn quota)
+## 5. Cost discipline (so you don't burn quota)
 
 GitHub will not charge you anything as long as you stay inside
 the free tier. Two habits keep you there:
@@ -411,7 +369,7 @@ You can always recreate a Codespace from the badge in the
 README. The first launch is the only slow one (~60 s); after
 that it's instant.
 
-## 7. Where to go after the labs
+## 6. Where to go after the labs
 
 - The Renode user docs: <https://renode.readthedocs.io/>
 - Renode's bundled platform `.repl` files for ~100 other boards:
