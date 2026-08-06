@@ -53,8 +53,12 @@ Policy Runs And Host NPU Agree
     ...                       host CPU; if the transformer kernel is loaded it
     ...                       also runs on the Coral NPU and agrees.
     Create Machine
-    Wait For Line On Uart     # host_policy_start
-    Wait For Line On Uart     host CPU  : intent ADVANCE
+    Wait For Line On Uart     \# host_policy_start
+    Wait For Line On Uart     \# host_policy_done
+    # NOTE: the firmware line is "host CPU  : intent ADVANCE, ..." -- the
+    # double space would split into two Robot Framework cells, so match a
+    # single-space substring instead.
+    Wait For Line On Uart     host CPU
 
 Platform Should Expose Host CPU Coral NPU And Actuator
     [Documentation]           The board exposes the host cpu, uart, ram, the

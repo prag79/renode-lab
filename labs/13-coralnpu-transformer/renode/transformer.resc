@@ -13,31 +13,34 @@ machine LoadPlatformDescription @renode/transformer.repl
 # and fall back to Antmicro's hosted sample; if neither is reachable the
 # transformer still runs on the host and the NPU phase reports "no kernel".
 python """
-import os
 # Prefer the real transformer kernel (functional offload); fall back to a
 # fetched copy, then to Antmicro's add sample (interface-only). Build the
 # real one with tools/build_kernel.sh.
+#
+# NOTE on paths: Renode changes its process working directory to the install
+# directory at startup, so os.path.exists() here would resolve relative paths
+# against the WRONG place. The monitor's `@path` syntax, however, resolves
+# against the directory you launched Renode from -- so just attempt the load
+# and check Parse's boolean result instead of pre-checking with os.path.
 KERNELS = [
     ("coralnpu/kernel/npu_transformer.bin", "transformer kernel (functional offload)"),
     ("binaries/coralnpu_kernel.bin",        "prebuilt kernel"),
 ]
-KERNEL_URL = "@https://dl.antmicro.com/projects/renode/coralnpu_v2_hello_world_add_floats.bin-s_65648-0e3f5d6ae173fa2e06f6b5f91906ef721516de4c"
-machine = monitor.Machine
+KERNEL_URL = "https://dl.antmicro.com/projects/renode/coralnpu_v2_hello_world_add_floats.bin-s_65648-0e3f5d6ae173fa2e06f6b5f91906ef721516de4c"
 loaded = False
 for path, desc in KERNELS:
-    if os.path.exists(path):
-        try:
-            monitor.Parse("npu LoadBinary @%s 0" % path)
+    try:
+        if monitor.Parse("npu LoadBinary @%s 0" % path):
             print "Coral NPU kernel: loaded %s (%s)" % (path, desc)
             loaded = True
             break
-        except Exception as e:
-            print "Coral NPU kernel: failed to load %s (%s)" % (path, str(e))
+    except Exception as e:
+        print "Coral NPU kernel: failed to load %s (%s)" % (path, str(e))
 if not loaded:
     try:
-        monitor.Parse("npu LoadBinary %s 0" % KERNEL_URL)
-        print "Coral NPU kernel: loaded Antmicro add sample (interface-only; host runs the policy)."
-        print "  For a FUNCTIONAL offload, build the transformer kernel: tools/build_kernel.sh"
+        if monitor.Parse("npu LoadBinary @%s 0" % KERNEL_URL):
+            print "Coral NPU kernel: loaded Antmicro add sample (interface-only; host runs the policy)."
+            print "  For a FUNCTIONAL offload, build the transformer kernel: tools/build_kernel.sh"
     except Exception as e:
         print "Coral NPU kernel: NOT loaded (%s); host will run the policy." % str(e)
 """
@@ -58,7 +61,10 @@ if not loaded:
 python """
 machine = monitor.Machine
 uart = machine["sysbus.uart"]
-_CORES = [("host cpu", "sysbus.cpu"), ("Coral NPU", "sysbus.npu")]
+# The CoralNPU *peripheral* registers as `sysbus.npu`, but its inner RISC-V
+# core (the one with ExecutedInstructions) is `sysbus.CoralNPU_RVV` -- same
+# as in Antmicro's official coral_npu demo script.
+_CORES = [("host cpu", "sysbus.cpu"), ("Coral NPU", "sysbus.CoralNPU_RVV")]
 _snap = {}
 
 def _read(path):
@@ -80,7 +86,7 @@ def coral_print(line=None):
         cur = _read(path)
         if cur is None:
             continue
-        if path == "sysbus.npu":
+        if path == "sysbus.CoralNPU_RVV":
             print "  %-11s %d  (NPU, cumulative)" % (label + ":", cur)
         else:
             print "  %-11s %d" % (label + ":", cur - _snap.get(path, cur))

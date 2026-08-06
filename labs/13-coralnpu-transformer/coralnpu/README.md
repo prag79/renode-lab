@@ -11,9 +11,20 @@ data with the host through the NPU's DTCM.
 kernel/
   crt0.S             entry: set sp in DTCM, zero .bss, call kernel_main, mpause
   npu_transformer.c  the int8 transformer (same weights as ../src/model.h)
-  link.ld            .text/.rodata -> ITCM (0x0), .bss/stack -> DTCM (0x10000)
+  link.ld            .text -> ITCM (0x0), .rodata/.bss/stack -> DTCM (0x10000)
   Makefile           builds npu_transformer.elf (+ .bin) with rv32im
 ```
+
+> **Harvard architecture gotcha**: the Coral core's ITCM is **fetch-only** —
+> a data load/store into the ITCM range faults the core (`MMU fault - the
+> address ... is not specified in any of the existing ranges`), and a
+> fault-looping NPU stalls Renode's virtual time (the robot test then hangs
+> instead of failing, because UART timeouts tick in virtual time). That is
+> why `link.ld` puts *only* `.text` in ITCM and all data (including the
+> `.rodata` weight tables) in DTCM above the 0x400-byte mailbox. The
+> resulting `.bin` is a full image — file offset == NPU-local address,
+> zero-padded between ITCM and DTCM — exactly like Antmicro's official
+> `coralnpu_v2_hello_world_add_floats.bin` sample.
 
 ## Two ways to run it
 

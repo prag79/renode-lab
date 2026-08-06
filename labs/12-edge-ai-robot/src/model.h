@@ -41,7 +41,7 @@ static const char *const intent_names[NUM_INTENTS] = {
 /* int8 weight matrix [intent][word]. Each intent scores high on the
  * words that characterize it; argmax over W*x picks the intent. */
 static const int8_t model_W[NUM_INTENTS][VOCAB_SIZE] = {
-/*             walk fwd bwd back kneel hold still turn arnd left right patrol area stop halt home dock go ret wait */
+/*                       walk   fwd    bwd     back     kneel    hold    still     turn     arnd     left   right patrol area stop halt home dock go ret wait */
 /* PATROL   */ {  0,  0,  0,  0,   0,   0,   0,   0,   1,   0,   0,    5,   4,   0,   0,   0,   0,  0,  0,   0 },
 /* RET_HOME */ {  0,  0,  0,  0,   0,   0,   0,   0,   0,   0,   0,    0,   0,   0,   0,   5,   5,  1,  4,   0 },
 /* KNEEL_HD */ {  0,  0,  0,  0,   5,   4,   3,   0,   0,   0,   0,    0,   0,   0,   0,   0,   0,  0,  0,   0 },

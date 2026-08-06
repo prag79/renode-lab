@@ -33,9 +33,12 @@ npu_transformer.o: npu_transformer.c ../../src/model.h
 npu_transformer.elf: $(OBJS) link.ld
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 
-# Flat image for `npu LoadBinary @npu_transformer.bin 0` (ITCM at offset 0).
+# Flat image for `npu LoadBinary @npu_transformer.bin 0`. The file offset is
+# the NPU-local address: .text at 0x0 (ITCM), .rodata at 0x10400 (DTCM, above
+# the mailbox), zero-padded in between -- the same layout as Antmicro's
+# official coralnpu_v2_hello_world_add_floats.bin sample.
 npu_transformer.bin: npu_transformer.elf
-	$(OBJCOPY) -O binary --only-section=.text --only-section=.rodata $< $@
+	$(OBJCOPY) -O binary $< $@
 
 disasm: npu_transformer.elf
 	$(CROSS)objdump -d $< | head -40

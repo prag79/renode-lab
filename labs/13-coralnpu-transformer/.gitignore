@@ -9,3 +9,5 @@ __pycache__/
 robot_output.xml
 log.html
 report.html
+logs/
+snapshots/
