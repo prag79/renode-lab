@@ -2,14 +2,14 @@
 #
 # The Coral NPU core is RISC-V rv32im (+ Kelvin SIMD we don't need for a
 # scalar int8 matmul), so a stock rv32 toolchain compiles it. We use the
-# same riscv64-elf-* toolchain as the rest of the labs with -march=rv32im.
+# same riscv64-unknown-elf-* toolchain as the rest of the labs with -march=rv32im.
 # Override CROSS if your rv32 toolchain has a different prefix, e.g.
 #   make CROSS=riscv32-unknown-elf-
 #
 # Weights come from the shared model header (../../src/model.h), so the
 # NPU-side inference matches the host reference exactly. Run
 # `python3 ../../tools/gen_model.py` first if you regenerated the model.
-CROSS   ?= riscv64-elf-
+CROSS   ?= riscv64-unknown-elf-
 CC      := $(CROSS)gcc
 OBJCOPY := $(CROSS)objcopy
 

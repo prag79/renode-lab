@@ -4,7 +4,7 @@
 # stage it where the Renode script loads it.
 #
 # The kernel is bare-metal rv32im, so any rv32 toolchain works. We default
-# to the repo's riscv64-elf-* with -march=rv32im; override with CROSS=...
+# to the repo's riscv64-unknown-elf-* with -march=rv32im; override with CROSS=...
 # (e.g. CROSS=riscv32-unknown-elf-). Produces:
 #   coralnpu/kernel/npu_transformer.elf   (for coralnpu_sim, has entry+symbols)
 #   coralnpu/kernel/npu_transformer.bin   (flat ITCM image for Renode)
