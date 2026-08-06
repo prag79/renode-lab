@@ -112,6 +112,18 @@
 #show table.cell.where(y: 0): set par(leading: 0.5em)
 #show figure: set block(breakable: true)
 
+// The "Where your edits live" lifecycle table is the document's only
+// 5-column table. Give it a smaller font so the Path column keeps
+// each path on a single line instead of wrapping mid-name.
+#show table: it => {
+  if type(it.columns) == array and it.columns.len() == 5 {
+    set text(size: 9.5pt)
+    it
+  } else {
+    it
+  }
+}
+
 // ---- Code blocks: light grey bg + left accent border ----
 #show raw.where(block: true): set block(
   fill: code-bg,

@@ -165,30 +165,30 @@ already), type:
 lab list
 ```
 
-You should see all the available labs:
+You should see the available labs listed (00–10 core, 11–13
+optional capstones):
 
-```
-Available labs (00–07 core, 08–13 optional capstones):
-  00       - bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: lab demo)
-  01       - bundled STM32F4 demo (sanity check)
-  02       - Linux on SiFive HiFive Unleashed (RISC-V)
-  03       - custom RV64 SoC + bare-metal hello world
-  04       - bare-metal on a SiFive FE310 (HiFive1): UART + GPIO blink
-  05       - FE310 timer interrupts: blink from a CLINT ISR
-  06       - headless regression testing with the Robot framework
-  07       - model your own peripheral (custom C# timer IP)
-  08       - (optional) multi-node IoT network: 3x FE310 over a shared UART bus
-  09       - (optional) edge AI: run an int8 neural net on a bare-metal RISC-V core
-  10       - (optional) real TensorFlow Lite Micro: gesture recognition on LiteX/VexRiscv
-  11       - (optional) cloud IoT: stream JSON telemetry to AWS IoT Core / Azure IoT Hub
-  12       - (optional) edge-AI robot: on-device int8 model turns commands into robot skill plans
-  13       - (optional) transformer robot: language policy on a Google Coral NPU (CPU.CoralNPU); needs Renode NIGHTLY
-  monitor  - plain Renode interactive monitor
-```
+| Lab       | What it is                                                                  |
+|-----------|-----------------------------------------------------------------------------|
+| `00`      | bare-metal ARM Cortex-A9 + SmartTimer MMIO demo (also: `lab demo`)          |
+| `01`      | bundled STM32F4 demo (sanity check)                                         |
+| `02`      | Linux on SiFive HiFive Unleashed (RISC-V)                                   |
+| `03`      | custom RV64 SoC + bare-metal hello world                                    |
+| `04`      | bare-metal on a SiFive FE310 (HiFive1): UART + GPIO blink                   |
+| `05`      | FE310 timer interrupts: blink from a CLINT ISR                              |
+| `06`      | headless regression testing with the Robot framework                        |
+| `07`      | model your own peripheral (custom C# timer IP)                              |
+| `08`      | multi-node IoT network: 3x FE310 over a shared UART bus                     |
+| `09`      | edge AI: run an int8 neural net on a bare-metal RISC-V core                 |
+| `10`      | real TensorFlow Lite Micro: gesture recognition on LiteX/VexRiscv           |
+| `11`      | (optional) cloud IoT: stream JSON telemetry to AWS IoT Core / Azure IoT Hub |
+| `12`      | (optional) edge-AI robot: on-device int8 model turns commands into robot skill plans |
+| `13`      | (optional) transformer robot: language policy on a Google Coral NPU (`CPU.CoralNPU`); needs Renode NIGHTLY |
+| `monitor` | plain Renode interactive monitor                                            |
 
 Labs **11–13** are optional capstones — cloud telemetry, an on-device
 robot controller, and a transformer offloaded to a Google Coral NPU. You
-don't need them for the sanity check below; run them after labs 00–010 when
+don't need them for the sanity check below; run them after labs 00–10 when
 you're ready.
 
 Then run lab 01:
@@ -220,11 +220,14 @@ directly. On first invocation it copies the lab into a
 **writable scratch tree** under your home directory and runs it
 from there:
 
-| Path | What it is | Survives Codespace stop? | Survives container rebuild? | Survives Codespace delete? |
-|---|---|:---:|:---:|:---:|
-| `/labs/<lab-name>/` | Read-only image content | yes | no | no |
-| `~/work/<lab-name>/` | Editable copy made by `lab NN` | **yes** | no | no |
-| `/workspaces/renode-lab/` | The cloned git repo | yes | yes | only if `git push`-ed |
+| Path                      | What it is                     | Stop? | Rebuild? | Delete?         |
+|---------------------------|--------------------------------|:-----:|:--------:|:---------------:|
+| `/labs/<lab-name>/`       | Read-only image content        | yes   | no       | no              |
+| `~/work/<lab-name>/`      | Editable copy made by `lab NN` | **yes** | no     | no              |
+| `/workspaces/renode-lab/` | The cloned git repo            | yes   | yes      | only if pushed  |
+
+*Stop / Rebuild / Delete are the three Codespace lifecycle events:
+stopping the Codespace, rebuilding its container, and deleting it.*
 
 **Practical rules:**
 
@@ -260,25 +263,6 @@ git remote -v       # sanity check:
                     #   origin    https://github.com/<your-username>/renode-lab.git
                     #   upstream  https://github.com/prag79/renode-lab.git
 ```
-
-> **If `gh: command not found`** — your Codespace is running an
-> older image that doesn't have the GitHub CLI baked in. Either
-> **rebuild the Codespace** (palette → `Codespaces: Rebuild
-> Container`) to pull the latest image, which includes `gh`, or
-> install it by hand:
->
-> ```bash
-> sudo mkdir -p -m 755 /etc/apt/keyrings \
->  && wget -nv -O- https://cli.github.com/packages/githubcli-archive-keyring.gpg \
->     | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
->  && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
->  && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
->     | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
->  && sudo apt-get update && sudo apt-get install -y gh
-> ```
->
-> The hand-install survives Codespace stop/start but is wiped on
-> rebuild — prefer rebuilding if you can.
 
 **2. (Recommended) work on a branch, not on `main`.** This keeps
 your tinkering separate from upstream so future `git pull
@@ -381,30 +365,32 @@ If you find a bug or have an improvement, open a PR against
 content → Docker image → GHCR → Codespaces) is in this one
 repository and welcomes contributions.
 
----
-
-**Quick reference card** (print this if you want a single-page
-cheat sheet):
-
+```{=typst}
+#pagebreak()
 ```
-Open lab:           click the badge in the README
-List labs:          lab list                              (banner runs this on attach)
-Quick taste:        lab 00      (a.k.a. lab demo)         5-min ARM MMIO warm-up
-Optional capstones: lab 08 | lab 09 | lab 10 | lab 11 | lab 12 | lab 13 (nightly)
-Verify install:     lab list && lab 01 -> start -> sysbus.cpu PC -> quit
-Edit + re-run:      edit ~/work/<lab>/..., then lab NN
-Read UART:          (in monitor) sysbus.uartN CreateFileBackend @/tmp/uartN.log true
-                    (in another terminal) tail -f /tmp/uartN.log
-Quiet log spam:     logLevel 3 sysbus.uartN
-Pause/resume CPU:   pause / start
-Read PC:            sysbus.cpu PC
-Step one insn:      sysbus.cpu Step
-Reset firmware:     machine Reset
-Exit Renode:        quit
-Save your work:     gh repo fork --remote --remote-name=origin    (one-time)
-                    git checkout -b my-experiments
-                    cp -ru ~/work/<lab>/. /workspaces/renode-lab/labs/<lab>/   (per lab; NOT /labs/)
-                    git add -A && git commit -m "..." && git push -u origin my-experiments
-Stop Codespace:     bottom-left of VS Code -> Stop codespace
-Delete Codespace:   gh codespace delete -c <name> --force         (safe AFTER push above)
-```
+
+**Quick reference card** (a single page you can print as a cheat
+sheet):
+
+| Task              | Command / how to do it                                                      |
+|-------------------|-----------------------------------------------------------------------------|
+| Open the lab      | click the **Open in GitHub Codespaces** badge in the README                 |
+| List labs         | `lab list` (the banner runs this on attach)                                 |
+| Quick taste       | `lab 00` (a.k.a. `lab demo`) — 5-min ARM MMIO warm-up                       |
+| Optional capstones | `lab 11` \| `lab 12` \| `lab 13` (nightly)                                 |
+| Verify install    | `lab list && lab 01` → `start` → `sysbus.cpu PC` → `quit`                   |
+| Edit + re-run     | edit `~/work/<lab>/...`, then `lab NN`                                      |
+| Read UART         | (in the monitor) `sysbus.uartN CreateFileBackend @/tmp/uartN.log true`      |
+|                   | (in another terminal) `tail -f /tmp/uartN.log`                              |
+| Quiet log spam    | `logLevel 3 sysbus.uartN`                                                   |
+| Pause/resume CPU  | `pause` / `start`                                                           |
+| Read PC           | `sysbus.cpu PC`                                                             |
+| Step one insn     | `sysbus.cpu Step`                                                           |
+| Reset firmware    | `machine Reset`                                                             |
+| Exit Renode       | `quit`                                                                      |
+| Save your work    | `gh repo fork --remote --remote-name=origin` (one-time)                     |
+|                   | `git checkout -b my-experiments`                                            |
+|                   | `cp -ru ~/work/<lab>/. /workspaces/renode-lab/labs/<lab>/` (per lab; NOT `/labs/`) |
+|                   | `git add -A && git commit -m "..." && git push -u origin my-experiments`    |
+| Stop Codespace    | bottom-left of VS Code → **Stop codespace**                                 |
+| Delete Codespace  | `gh codespace delete -c <name> --force` (safe AFTER the push above)         |
