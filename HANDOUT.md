@@ -5,8 +5,7 @@ embedded systems — from a 5-minute MMIO taste on a bare-metal ARM
 Cortex-A9, through a Cortex-M4 microcontroller and a multi-core
 RISC-V Linux SoC, all the way to a SiFive FE310 with timer interrupts,
 a Robot-driven CI suite, a peripheral you write yourself in C#, optional
-capstones (multi-node IoT, edge AI, TensorFlow Lite Micro, cloud IoT,
-and an edge-AI robot controller) — all inside a browser tab, with
+capstones (cloud IoT, an edge-AI robot controller, Transformer robot using Coral NPU) — all inside a browser tab, with
 **nothing installed on your laptop**.
 
 This document walks you through the setup once. After that,
