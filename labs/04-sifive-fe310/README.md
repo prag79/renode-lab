@@ -13,7 +13,9 @@ HiFive1 firmware engineer pokes". Two new wrinkles versus lab 03:
 - **32-bit core.** RV32IMAC, not RV64 — different `-march`/`-mabi`
   and 4-byte words in the startup code.
 - **Real peripherals.** The UART has a `txdata`/`txctrl` protocol
-  (not a THR/LSR pair), and the GPIO uses `output_en`/`output_val`.
+  (not a THR/LSR pair), every UART register is a **32-bit** word
+  (so the monitor must `WriteDoubleWord`, not `WriteByte`), and
+  the GPIO uses `output_en`/`output_val`.
 - **Tiny RAM.** The FE310 has just **16 KiB** of on-chip SRAM, so
   the linker script and stack are sized accordingly.
 
@@ -140,7 +142,7 @@ STM32 and lab 03's NS16550 — worth poking by hand.
 | `sysbus ReadDoubleWord 0x10012008` | Read GPIO `output_en`; bit 19 is set once `main` runs. |
 | `gpio.led State` | Read the connected LED object directly (`True`/`False`). |
 | `logLevel -1 gpio.led` | Log every LED state change as the blink loop runs. |
-| `sysbus WriteByte 0x10013000 0x41` | Write 'A' straight to the UART `txdata` register. |
+| `sysbus WriteDoubleWord 0x10013000 0x41` | Write 'A' to UART `txdata` (32-bit register; `WriteByte` is rejected). |
 | `logLevel 0 sysbus.gpio` | Verbose-log every GPIO register access. Reset with `logLevel 3 sysbus.gpio`. |
 | `logLevel 0 sysbus.uart0` | Same for the UART. |
 | `emulation RunFor "0.01"` | Advance exactly 10 ms of simulated time, then auto-pause. |
@@ -174,13 +176,17 @@ STM32 and lab 03's NS16550 — worth poking by hand.
    twice as fast.
 
 4. **Drive the UART without the CPU.** Pause, then poke `txdata`
-   directly:
+   directly. SiFive UART registers are 32-bit (`txdata[7:0]` is the
+   byte, bit 31 is TX-full) — the firmware writes them with
+   `uint32_t` stores, and Renode's `SiFive_UART` model only
+   implements double-word accesses. `WriteByte` logs
+   `Attempted Byte write isn't supported` and does nothing.
 
    ```text
    pause
-   sysbus WriteByte 0x10013000 0x48      # 'H'
-   sysbus WriteByte 0x10013000 0x69      # 'i'
-   sysbus WriteByte 0x10013000 0x0A      # '\n'
+   sysbus WriteDoubleWord 0x10013000 0x48      # 'H'
+   sysbus WriteDoubleWord 0x10013000 0x69      # 'i'
+   sysbus WriteDoubleWord 0x10013000 0x0A      # '\n'
    ```
 
    `Hi` appears in the analyzer / log — you bypassed the core and
