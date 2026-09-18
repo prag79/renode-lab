@@ -1,6 +1,7 @@
 # Toggle the STM32F4 Discovery user LED (PD12) 10 times with a
-# 200 ms simulated delay between each transition, printing the
-# LED state after each write.
+# 200 ms wall-clock delay between each transition, printing the
+# LED state after each write. The CPU stays paused — see blink.py
+# for why we do not use `emulation RunFor` with this firmware.
 #
 # Usage from the Renode monitor (machine must be paused first):
 #   pause

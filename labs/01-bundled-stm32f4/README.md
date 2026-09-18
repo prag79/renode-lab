@@ -277,11 +277,15 @@ for usage.
 
    ### b) Live blink loop you can watch
 
-   Toggle 10 times with a 200 ms simulated delay between each
-   transition. Two files ship with the lab:
+   There is **no graphical LED** in the default headless lab (and
+   no LED analyzer window even with `LAB_GUI=1`). The blink is the
+   `State` / `[NOISY] … state = True/False` lines in the monitor.
 
-   - [`blink.py`](blink.py) — the actual Python loop (executes
-     `WriteDoubleWord` / `RunFor` / `State` for ten iterations).
+   Toggle 10 times with a 200 ms wall-clock delay. Two files ship
+   with the lab:
+
+   - [`blink.py`](blink.py) — the actual Python loop (writes BSRR,
+     prints `State`, `time.sleep(0.2)`).
    - [`blink.resc`](blink.resc) — a one-line loader:
      `python "execfile('blink.py')"`.
 
@@ -291,6 +295,13 @@ for usage.
    `Could not tokenize here: python "`. Keeping the Python in a
    `.py` file dodges that.
 
+   The CPU stays **paused**. Do not use `emulation RunFor` to pace
+   this demo: Contiki on this image is a busy loop (almost no
+   `WFI`), so 200 ms of *virtual* time can take minutes of wall
+   clock. The monitor then sits on `Machine resumed.` with no
+   True/False output — that is the firmware executing, not a
+   hung LED.
+
    At the `(STM32F4_Discovery)` prompt (machine paused):
 
    ```text
@@ -298,15 +309,24 @@ for usage.
    include @blink.resc
    ```
 
-   You'll see `True / False / True / False …` scroll past — that
-   is the LED blinking at 2.5 Hz of *simulated* time. (Wall-clock
-   speed depends on how fast Renode is running; the **virtual**
-   period is exactly 400 ms per blink.)
+   You'll see `ON State=True` / `OFF State=False` (and noisy LED
+   logs) scroll past for about 4 seconds, then the prompt returns.
+   If `include` is still sitting on `Machine resumed.` from an
+   older `blink.py` that used `RunFor`, interrupt it (`Ctrl-C`;
+   restart with `lab 01` if the monitor dies) and copy the updated
+   files into `~/work/01-bundled-stm32f4/` first — `lab 01` will
+   not overwrite a copy you already have.
 
-   Prefer to skip the files entirely? Just paste the six
-   `WriteDoubleWord` / `RunFor` / `State` lines from `blink.py`
-   at the monitor prompt manually — no Python, no loop, no
-   escaping.
+   Prefer to skip the files entirely? Pause, then paste these at
+   the monitor prompt a few times — no Python, no loop:
+
+   ```text
+   logLevel -1 sysbus.gpioPortD.UserLED
+   sysbus WriteDoubleWord 0x40020C18 0x00001000
+   sysbus.gpioPortD.UserLED State
+   sysbus WriteDoubleWord 0x40020C18 0x10000000
+   sysbus.gpioPortD.UserLED State
+   ```
 
    ### c) Trace every state change to the console
 
